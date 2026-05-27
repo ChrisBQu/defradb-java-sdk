@@ -54,6 +54,8 @@ public class DefraNode {
     
     // Identity Methods
     private native DefraIdentityResult IdentityNewNative(String keyType);
+    private native DefraIdentityResult NewIdentityFromPrivateKeyNative(String privateKeyHex);
+    private native DefraResult ExportIdentityPrivateKeyNative(long identityPtr);
     private native DefraResult GetNodeIdentityNative(long nodePtr);
     private native void FreeIdentityNative(long identityPtr);
     
@@ -572,6 +574,22 @@ public class DefraNode {
 
     public String getNodeIdentity() throws DefraException {
         DefraResult result = GetNodeIdentityNative(this.nodePtr);
+        if (result.status != 0) {
+            throw new DefraException(result.error);
+        }
+        return result.value;
+    }
+
+    public DefraIdentity identityFromPrivateKey(String privateKeyHex) throws DefraException {
+        DefraIdentityResult identResult = NewIdentityFromPrivateKeyNative(privateKeyHex);
+        if (identResult.status != 0) {
+            throw new DefraException(identResult.error);
+        }
+        return new DefraIdentity(identResult.identityPtr);
+    }
+
+    public String exportIdentityPrivateKey(DefraIdentity identity) throws DefraException {
+        DefraResult result = ExportIdentityPrivateKeyNative(identity.getPointer());
         if (result.status != 0) {
             throw new DefraException(result.error);
         }
