@@ -1,7 +1,7 @@
 package source.defra;
 
 public class DefraNodeInitOptions {
-
+	
     public String dbPath;
     public String listeningAddresses;
     public String replicatorRetryIntervals;
@@ -12,6 +12,31 @@ public class DefraNodeInitOptions {
     public boolean disableAPI;
     public boolean enableNodeACP;
     public int maxTransactionRetries;
+    public String storeType;
+    public long badgerFileSize;
+    public byte[] badgerEncryptionKey;
+    public boolean enableSigning;
+    public byte[] searchableEncryptionKey;
+    public long p2pBlockSyncTimeoutMs;
+    public int lensPoolSize
+    public int chunkSize;
+    public boolean enablePubSub;
+    public boolean enableRelay;
+    public boolean enableClearBackoffOnRetry;
+    public byte[] p2pPrivateKey;
+    public String httpAddress;
+    public String httpAllowedOrigins;
+    public String tlsCertPath;
+    public String tlsKeyPath;
+    public long httpReadTimeoutMs;
+    public long httpWriteTimeoutMs;
+    public long httpIdleTimeoutMs;
+    public String documentACPType;
+    public String documentACPPath;
+    public String sourceHubChainID;
+    public String sourceHubGRPCAddress;
+    public String sourceHubCometRPCAddress;
+    public String nodeACPPath;
 
     public DefraNodeInitOptions() {
         this.dbPath = "";
@@ -24,6 +49,31 @@ public class DefraNodeInitOptions {
         this.disableAPI = true;
         this.enableNodeACP = false;
         this.maxTransactionRetries = 0;
+        this.storeType = "";
+        this.badgerFileSize = 0;
+        this.badgerEncryptionKey = null;
+        this.enableSigning = false;
+        this.searchableEncryptionKey = null;
+        this.p2pBlockSyncTimeoutMs = 0;
+        this.lensPoolSize = 0;
+        this.chunkSize = 0;
+        this.enablePubSub = false;
+        this.enableRelay = false;
+        this.enableClearBackoffOnRetry = false;
+        this.p2pPrivateKey = null;
+        this.httpAddress = "";
+        this.httpAllowedOrigins = "";
+        this.tlsCertPath = "";
+        this.tlsKeyPath = "";
+        this.httpReadTimeoutMs = 0;
+        this.httpWriteTimeoutMs = 0;
+        this.httpIdleTimeoutMs = 0;
+        this.documentACPType = "";
+        this.documentACPPath = "";
+        this.sourceHubChainID = "";
+        this.sourceHubGRPCAddress = "";
+        this.sourceHubCometRPCAddress = "";
+        this.nodeACPPath = "";
     }
     
 }

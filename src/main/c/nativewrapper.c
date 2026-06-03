@@ -51,7 +51,7 @@ NodeInitOptions convertJavaNodeInitOptions(JNIEnv* env, jobject optionsObj) {
     memset(&opts, 0, sizeof(NodeInitOptions));
     jclass cls = (*env)->GetObjectClass(env, optionsObj);
 
-    // Strings
+    // Core strings
     jfieldID fid_dbPath = (*env)->GetFieldID(env, cls, "dbPath", "Ljava/lang/String;");
     jfieldID fid_listeningAddresses = (*env)->GetFieldID(env, cls, "listeningAddresses", "Ljava/lang/String;");
     jfieldID fid_replicatorRetryIntervals = (*env)->GetFieldID(env, cls, "replicatorRetryIntervals", "Ljava/lang/String;");
@@ -67,7 +67,7 @@ NodeInitOptions convertJavaNodeInitOptions(JNIEnv* env, jobject optionsObj) {
     opts.replicatorRetryIntervals = (*env)->GetStringUTFChars(env, replicatorRetryIntervalsStr, 0);
     opts.peers = (*env)->GetStringUTFChars(env, peersStr, 0);
 
-    // Booleans
+    // Core booleans/ints
     jfieldID fid_inMemory = (*env)->GetFieldID(env, cls, "inMemory", "Z");
     jfieldID fid_disableP2P = (*env)->GetFieldID(env, cls, "disableP2P", "Z");
     jfieldID fid_disableAPI = (*env)->GetFieldID(env, cls, "disableAPI", "Z");
@@ -78,7 +78,6 @@ NodeInitOptions convertJavaNodeInitOptions(JNIEnv* env, jobject optionsObj) {
     opts.disableAPI = (*env)->GetBooleanField(env, optionsObj, fid_disableAPI) ? 1 : 0;
     opts.enableNodeACP = (*env)->GetBooleanField(env, optionsObj, fid_enableNodeACP) ? 1 : 0;
 
-    // Integer
     jfieldID fid_maxTransactionRetries = (*env)->GetFieldID(env, cls, "maxTransactionRetries", "I");
     opts.maxTransactionRetries = (*env)->GetIntField(env, optionsObj, fid_maxTransactionRetries);
 
@@ -90,6 +89,110 @@ NodeInitOptions convertJavaNodeInitOptions(JNIEnv* env, jobject optionsObj) {
         jfieldID fid_ptr = (*env)->GetFieldID(env, identityCls, "ptr", "J");
         opts.identityPtr = (uintptr_t)(*env)->GetLongField(env, identityObj, fid_ptr);
     }
+
+    // Store options
+    jfieldID fid_storeType = (*env)->GetFieldID(env, cls, "storeType", "Ljava/lang/String;");
+    jstring storeTypeStr = (jstring)(*env)->GetObjectField(env, optionsObj, fid_storeType);
+    opts.storeType = storeTypeStr ? (*env)->GetStringUTFChars(env, storeTypeStr, 0) : NULL;
+
+    jfieldID fid_badgerFileSize = (*env)->GetFieldID(env, cls, "badgerFileSize", "J");
+    opts.badgerFileSize = (*env)->GetLongField(env, optionsObj, fid_badgerFileSize);
+
+    jfieldID fid_badgerEncryptionKey = (*env)->GetFieldID(env, cls, "badgerEncryptionKey", "[B");
+    jbyteArray badgerEncryptionKeyArr = (jbyteArray)(*env)->GetObjectField(env, optionsObj, fid_badgerEncryptionKey);
+    if (badgerEncryptionKeyArr != NULL) {
+        opts.badgerEncryptionKey = (uint8_t*)(*env)->GetByteArrayElements(env, badgerEncryptionKeyArr, NULL);
+        opts.badgerEncryptionKeyLen = (int)(*env)->GetArrayLength(env, badgerEncryptionKeyArr);
+    }
+
+    // DB options
+    jfieldID fid_enableSigning = (*env)->GetFieldID(env, cls, "enableSigning", "Z");
+    opts.enableSigning = (*env)->GetBooleanField(env, optionsObj, fid_enableSigning) ? 1 : 0;
+
+    jfieldID fid_searchableEncryptionKey = (*env)->GetFieldID(env, cls, "searchableEncryptionKey", "[B");
+    jbyteArray searchableEncryptionKeyArr = (jbyteArray)(*env)->GetObjectField(env, optionsObj, fid_searchableEncryptionKey);
+    if (searchableEncryptionKeyArr != NULL) {
+        opts.searchableEncryptionKey = (uint8_t*)(*env)->GetByteArrayElements(env, searchableEncryptionKeyArr, NULL);
+        opts.searchableEncryptionKeyLen = (int)(*env)->GetArrayLength(env, searchableEncryptionKeyArr);
+    }
+
+    jfieldID fid_p2pBlockSyncTimeoutMs = (*env)->GetFieldID(env, cls, "p2pBlockSyncTimeoutMs", "J");
+    opts.p2pBlockSyncTimeoutMs = (*env)->GetLongField(env, optionsObj, fid_p2pBlockSyncTimeoutMs);
+
+    jfieldID fid_lensPoolSize = (*env)->GetFieldID(env, cls, "lensPoolSize", "I");
+    opts.lensPoolSize = (*env)->GetIntField(env, optionsObj, fid_lensPoolSize);
+
+    jfieldID fid_chunkSize = (*env)->GetFieldID(env, cls, "chunkSize", "I");
+    opts.chunkSize = (*env)->GetIntField(env, optionsObj, fid_chunkSize);
+
+    // P2P options
+    jfieldID fid_enablePubSub = (*env)->GetFieldID(env, cls, "enablePubSub", "Z");
+    opts.enablePubSub = (*env)->GetBooleanField(env, optionsObj, fid_enablePubSub) ? 1 : 0;
+
+    jfieldID fid_enableRelay = (*env)->GetFieldID(env, cls, "enableRelay", "Z");
+    opts.enableRelay = (*env)->GetBooleanField(env, optionsObj, fid_enableRelay) ? 1 : 0;
+
+    jfieldID fid_enableClearBackoffOnRetry = (*env)->GetFieldID(env, cls, "enableClearBackoffOnRetry", "Z");
+    opts.enableClearBackoffOnRetry = (*env)->GetBooleanField(env, optionsObj, fid_enableClearBackoffOnRetry) ? 1 : 0;
+
+    jfieldID fid_p2pPrivateKey = (*env)->GetFieldID(env, cls, "p2pPrivateKey", "[B");
+    jbyteArray p2pPrivateKeyArr = (jbyteArray)(*env)->GetObjectField(env, optionsObj, fid_p2pPrivateKey);
+    if (p2pPrivateKeyArr != NULL) {
+        opts.p2pPrivateKey = (uint8_t*)(*env)->GetByteArrayElements(env, p2pPrivateKeyArr, NULL);
+        opts.p2pPrivateKeyLen = (int)(*env)->GetArrayLength(env, p2pPrivateKeyArr);
+    }
+
+    // HTTP options
+    jfieldID fid_httpAddress = (*env)->GetFieldID(env, cls, "httpAddress", "Ljava/lang/String;");
+    jstring httpAddressStr = (jstring)(*env)->GetObjectField(env, optionsObj, fid_httpAddress);
+    opts.httpAddress = httpAddressStr ? (*env)->GetStringUTFChars(env, httpAddressStr, 0) : NULL;
+
+    jfieldID fid_httpAllowedOrigins = (*env)->GetFieldID(env, cls, "httpAllowedOrigins", "Ljava/lang/String;");
+    jstring httpAllowedOriginsStr = (jstring)(*env)->GetObjectField(env, optionsObj, fid_httpAllowedOrigins);
+    opts.httpAllowedOrigins = httpAllowedOriginsStr ? (*env)->GetStringUTFChars(env, httpAllowedOriginsStr, 0) : NULL;
+
+    jfieldID fid_tlsCertPath = (*env)->GetFieldID(env, cls, "tlsCertPath", "Ljava/lang/String;");
+    jstring tlsCertPathStr = (jstring)(*env)->GetObjectField(env, optionsObj, fid_tlsCertPath);
+    opts.tlsCertPath = tlsCertPathStr ? (*env)->GetStringUTFChars(env, tlsCertPathStr, 0) : NULL;
+
+    jfieldID fid_tlsKeyPath = (*env)->GetFieldID(env, cls, "tlsKeyPath", "Ljava/lang/String;");
+    jstring tlsKeyPathStr = (jstring)(*env)->GetObjectField(env, optionsObj, fid_tlsKeyPath);
+    opts.tlsKeyPath = tlsKeyPathStr ? (*env)->GetStringUTFChars(env, tlsKeyPathStr, 0) : NULL;
+
+    jfieldID fid_httpReadTimeoutMs = (*env)->GetFieldID(env, cls, "httpReadTimeoutMs", "J");
+    opts.httpReadTimeoutMs = (*env)->GetLongField(env, optionsObj, fid_httpReadTimeoutMs);
+
+    jfieldID fid_httpWriteTimeoutMs = (*env)->GetFieldID(env, cls, "httpWriteTimeoutMs", "J");
+    opts.httpWriteTimeoutMs = (*env)->GetLongField(env, optionsObj, fid_httpWriteTimeoutMs);
+
+    jfieldID fid_httpIdleTimeoutMs = (*env)->GetFieldID(env, cls, "httpIdleTimeoutMs", "J");
+    opts.httpIdleTimeoutMs = (*env)->GetLongField(env, optionsObj, fid_httpIdleTimeoutMs);
+
+    // Document ACP options
+    jfieldID fid_documentACPType = (*env)->GetFieldID(env, cls, "documentACPType", "Ljava/lang/String;");
+    jstring documentACPTypeStr = (jstring)(*env)->GetObjectField(env, optionsObj, fid_documentACPType);
+    opts.documentACPType = documentACPTypeStr ? (*env)->GetStringUTFChars(env, documentACPTypeStr, 0) : NULL;
+
+    jfieldID fid_documentACPPath = (*env)->GetFieldID(env, cls, "documentACPPath", "Ljava/lang/String;");
+    jstring documentACPPathStr = (jstring)(*env)->GetObjectField(env, optionsObj, fid_documentACPPath);
+    opts.documentACPPath = documentACPPathStr ? (*env)->GetStringUTFChars(env, documentACPPathStr, 0) : NULL;
+
+    jfieldID fid_sourceHubChainID = (*env)->GetFieldID(env, cls, "sourceHubChainID", "Ljava/lang/String;");
+    jstring sourceHubChainIDStr = (jstring)(*env)->GetObjectField(env, optionsObj, fid_sourceHubChainID);
+    opts.sourceHubChainID = sourceHubChainIDStr ? (*env)->GetStringUTFChars(env, sourceHubChainIDStr, 0) : NULL;
+
+    jfieldID fid_sourceHubGRPCAddress = (*env)->GetFieldID(env, cls, "sourceHubGRPCAddress", "Ljava/lang/String;");
+    jstring sourceHubGRPCAddressStr = (jstring)(*env)->GetObjectField(env, optionsObj, fid_sourceHubGRPCAddress);
+    opts.sourceHubGRPCAddress = sourceHubGRPCAddressStr ? (*env)->GetStringUTFChars(env, sourceHubGRPCAddressStr, 0) : NULL;
+
+    jfieldID fid_sourceHubCometRPCAddress = (*env)->GetFieldID(env, cls, "sourceHubCometRPCAddress", "Ljava/lang/String;");
+    jstring sourceHubCometRPCAddressStr = (jstring)(*env)->GetObjectField(env, optionsObj, fid_sourceHubCometRPCAddress);
+    opts.sourceHubCometRPCAddress = sourceHubCometRPCAddressStr ? (*env)->GetStringUTFChars(env, sourceHubCometRPCAddressStr, 0) : NULL;
+
+    // Node ACP options
+    jfieldID fid_nodeACPPath = (*env)->GetFieldID(env, cls, "nodeACPPath", "Ljava/lang/String;");
+    jstring nodeACPPathStr = (jstring)(*env)->GetObjectField(env, optionsObj, fid_nodeACPPath);
+    opts.nodeACPPath = nodeACPPathStr ? (*env)->GetStringUTFChars(env, nodeACPPathStr, 0) : NULL;
 
     return opts;
 }
@@ -123,20 +226,65 @@ CollectionOptions convertJavaCollectionOptions(JNIEnv* env, jobject optionsObj) 
 // Helper to release allocated Java strings after the call
 void releaseJavaNodeInitOptions(JNIEnv* env, jobject optionsObj, NodeInitOptions opts) {
     jclass cls = (*env)->GetObjectClass(env, optionsObj);
+
+    // Core strings
     jfieldID fid_dbPath = (*env)->GetFieldID(env, cls, "dbPath", "Ljava/lang/String;");
     jfieldID fid_listeningAddresses = (*env)->GetFieldID(env, cls, "listeningAddresses", "Ljava/lang/String;");
     jfieldID fid_replicatorRetryIntervals = (*env)->GetFieldID(env, cls, "replicatorRetryIntervals", "Ljava/lang/String;");
     jfieldID fid_peers = (*env)->GetFieldID(env, cls, "peers", "Ljava/lang/String;");
 
-    jstring dbPathStr = (jstring)(*env)->GetObjectField(env, optionsObj, fid_dbPath);
-    jstring listeningAddressesStr = (jstring)(*env)->GetObjectField(env, optionsObj, fid_listeningAddresses);
-    jstring replicatorRetryIntervalsStr = (jstring)(*env)->GetObjectField(env, optionsObj, fid_replicatorRetryIntervals);
-    jstring peersStr = (jstring)(*env)->GetObjectField(env, optionsObj, fid_peers);
+    (*env)->ReleaseStringUTFChars(env, (jstring)(*env)->GetObjectField(env, optionsObj, fid_dbPath), opts.dbPath);
+    (*env)->ReleaseStringUTFChars(env, (jstring)(*env)->GetObjectField(env, optionsObj, fid_listeningAddresses), opts.listeningAddresses);
+    (*env)->ReleaseStringUTFChars(env, (jstring)(*env)->GetObjectField(env, optionsObj, fid_replicatorRetryIntervals), opts.replicatorRetryIntervals);
+    (*env)->ReleaseStringUTFChars(env, (jstring)(*env)->GetObjectField(env, optionsObj, fid_peers), opts.peers);
 
-    (*env)->ReleaseStringUTFChars(env, dbPathStr, opts.dbPath);
-    (*env)->ReleaseStringUTFChars(env, listeningAddressesStr, opts.listeningAddresses);
-    (*env)->ReleaseStringUTFChars(env, replicatorRetryIntervalsStr, opts.replicatorRetryIntervals);
-    (*env)->ReleaseStringUTFChars(env, peersStr, opts.peers);
+    // Store options
+    jfieldID fid_storeType = (*env)->GetFieldID(env, cls, "storeType", "Ljava/lang/String;");
+    if (opts.storeType) (*env)->ReleaseStringUTFChars(env, (jstring)(*env)->GetObjectField(env, optionsObj, fid_storeType), opts.storeType);
+
+    jfieldID fid_badgerEncryptionKey = (*env)->GetFieldID(env, cls, "badgerEncryptionKey", "[B");
+    if (opts.badgerEncryptionKey) (*env)->ReleaseByteArrayElements(env, (jbyteArray)(*env)->GetObjectField(env, optionsObj, fid_badgerEncryptionKey), (jbyte*)opts.badgerEncryptionKey, JNI_ABORT);
+
+    // DB options
+    jfieldID fid_searchableEncryptionKey = (*env)->GetFieldID(env, cls, "searchableEncryptionKey", "[B");
+    if (opts.searchableEncryptionKey) (*env)->ReleaseByteArrayElements(env, (jbyteArray)(*env)->GetObjectField(env, optionsObj, fid_searchableEncryptionKey), (jbyte*)opts.searchableEncryptionKey, JNI_ABORT);
+
+    // P2P options
+    jfieldID fid_p2pPrivateKey = (*env)->GetFieldID(env, cls, "p2pPrivateKey", "[B");
+    if (opts.p2pPrivateKey) (*env)->ReleaseByteArrayElements(env, (jbyteArray)(*env)->GetObjectField(env, optionsObj, fid_p2pPrivateKey), (jbyte*)opts.p2pPrivateKey, JNI_ABORT);
+
+    // HTTP options
+    jfieldID fid_httpAddress = (*env)->GetFieldID(env, cls, "httpAddress", "Ljava/lang/String;");
+    if (opts.httpAddress) (*env)->ReleaseStringUTFChars(env, (jstring)(*env)->GetObjectField(env, optionsObj, fid_httpAddress), opts.httpAddress);
+
+    jfieldID fid_httpAllowedOrigins = (*env)->GetFieldID(env, cls, "httpAllowedOrigins", "Ljava/lang/String;");
+    if (opts.httpAllowedOrigins) (*env)->ReleaseStringUTFChars(env, (jstring)(*env)->GetObjectField(env, optionsObj, fid_httpAllowedOrigins), opts.httpAllowedOrigins);
+
+    jfieldID fid_tlsCertPath = (*env)->GetFieldID(env, cls, "tlsCertPath", "Ljava/lang/String;");
+    if (opts.tlsCertPath) (*env)->ReleaseStringUTFChars(env, (jstring)(*env)->GetObjectField(env, optionsObj, fid_tlsCertPath), opts.tlsCertPath);
+
+    jfieldID fid_tlsKeyPath = (*env)->GetFieldID(env, cls, "tlsKeyPath", "Ljava/lang/String;");
+    if (opts.tlsKeyPath) (*env)->ReleaseStringUTFChars(env, (jstring)(*env)->GetObjectField(env, optionsObj, fid_tlsKeyPath), opts.tlsKeyPath);
+
+    // Document ACP options
+    jfieldID fid_documentACPType = (*env)->GetFieldID(env, cls, "documentACPType", "Ljava/lang/String;");
+    if (opts.documentACPType) (*env)->ReleaseStringUTFChars(env, (jstring)(*env)->GetObjectField(env, optionsObj, fid_documentACPType), opts.documentACPType);
+
+    jfieldID fid_documentACPPath = (*env)->GetFieldID(env, cls, "documentACPPath", "Ljava/lang/String;");
+    if (opts.documentACPPath) (*env)->ReleaseStringUTFChars(env, (jstring)(*env)->GetObjectField(env, optionsObj, fid_documentACPPath), opts.documentACPPath);
+
+    jfieldID fid_sourceHubChainID = (*env)->GetFieldID(env, cls, "sourceHubChainID", "Ljava/lang/String;");
+    if (opts.sourceHubChainID) (*env)->ReleaseStringUTFChars(env, (jstring)(*env)->GetObjectField(env, optionsObj, fid_sourceHubChainID), opts.sourceHubChainID);
+
+    jfieldID fid_sourceHubGRPCAddress = (*env)->GetFieldID(env, cls, "sourceHubGRPCAddress", "Ljava/lang/String;");
+    if (opts.sourceHubGRPCAddress) (*env)->ReleaseStringUTFChars(env, (jstring)(*env)->GetObjectField(env, optionsObj, fid_sourceHubGRPCAddress), opts.sourceHubGRPCAddress);
+
+    jfieldID fid_sourceHubCometRPCAddress = (*env)->GetFieldID(env, cls, "sourceHubCometRPCAddress", "Ljava/lang/String;");
+    if (opts.sourceHubCometRPCAddress) (*env)->ReleaseStringUTFChars(env, (jstring)(*env)->GetObjectField(env, optionsObj, fid_sourceHubCometRPCAddress), opts.sourceHubCometRPCAddress);
+
+    // Node ACP options
+    jfieldID fid_nodeACPPath = (*env)->GetFieldID(env, cls, "nodeACPPath", "Ljava/lang/String;");
+    if (opts.nodeACPPath) (*env)->ReleaseStringUTFChars(env, (jstring)(*env)->GetObjectField(env, optionsObj, fid_nodeACPPath), opts.nodeACPPath);
 }
 
 void releaseJavaCollectionOptions(JNIEnv* env, jobject optionsObj, CollectionOptions opts) {
