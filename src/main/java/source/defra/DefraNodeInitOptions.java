@@ -18,7 +18,7 @@ public class DefraNodeInitOptions {
     public boolean enableSigning;
     public byte[] searchableEncryptionKey;
     public long p2pBlockSyncTimeoutMs;
-    public int lensPoolSize
+    public int lensPoolSize;
     public int chunkSize;
     public boolean enablePubSub;
     public boolean enableRelay;
