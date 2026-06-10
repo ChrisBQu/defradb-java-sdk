@@ -72,7 +72,8 @@ public class DefraTransaction {
     private native DefraResult SyncP2PCollectionVersionsNative(long txnPtr, String versionIDs, String timeout, long identityPtr);
     private native DefraResult SyncP2PBranchableCollectionNative(long txnPtr, String collectionID, String timeout, long identityPtr);
     private native DefraResult ConnectP2PPeersNative(long txnPtr, String peerAddresses, long identityPtr);
-    
+    private native DefraResult DisconnectP2PPeersNative(long txnPtr, String peerAddresses, long identityPtr);
+
     // Query Methods
     private native DefraResult ExecuteQueryNative(long txnPtr, String query, long identityPtr, String operationName, String variables);
     
@@ -799,6 +800,22 @@ public class DefraTransaction {
 
     public String connectP2PPeers(String peerAddresses, DefraIdentity identity) throws DefraException {
         DefraResult result = ConnectP2PPeersNative(this.txnPtr, peerAddresses, identity.getPointer());
+        if (result.status != 0) {
+            throw new DefraException(result.error);
+        }
+        return result.value;
+    }
+
+    public String disconnectP2PPeers(String peerAddresses) throws DefraException {
+        DefraResult result = DisconnectP2PPeersNative(this.txnPtr, peerAddresses, 0);
+        if (result.status != 0) {
+            throw new DefraException(result.error);
+        }
+        return result.value;
+    }
+
+    public String disconnectP2PPeers(String peerAddresses, DefraIdentity identity) throws DefraException {
+        DefraResult result = DisconnectP2PPeersNative(this.txnPtr, peerAddresses, identity.getPointer());
         if (result.status != 0) {
             throw new DefraException(result.error);
         }

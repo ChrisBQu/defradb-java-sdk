@@ -971,6 +971,19 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_ConnectP2PPeersNative(
     return returnDefraResult(env, res);
 }
 
+JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_DisconnectP2PPeersNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jstring peerAddressesStr,
+    jlong identityPtr
+) {
+    const char* peerAddressesC = peerAddressesStr ? (*env)->GetStringUTFChars(env, peerAddressesStr, NULL) : NULL;
+    Result res = DisconnectP2PPeers((uintptr_t)nodePtr, (char*)peerAddressesC, (uintptr_t)identityPtr);
+    if (peerAddressesStr) (*env)->ReleaseStringUTFChars(env, peerAddressesStr, peerAddressesC);
+    return returnDefraResult(env, res);
+}
+
 JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_ExecuteQueryNative(
     JNIEnv* env,
     jobject thiz,
@@ -1385,6 +1398,19 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_ConnectP2PPeersNati
 ) {
     const char* peerAddressesC = peerAddressesStr ? (*env)->GetStringUTFChars(env, peerAddressesStr, NULL) : NULL;
     Result res = ConnectP2PPeers((uintptr_t)nodePtr, (char*)peerAddressesC, (uintptr_t)identityPtr);
+    if (peerAddressesStr) (*env)->ReleaseStringUTFChars(env, peerAddressesStr, peerAddressesC);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_DisconnectP2PPeersNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jstring peerAddressesStr,
+    jlong identityPtr
+) {
+    const char* peerAddressesC = peerAddressesStr ? (*env)->GetStringUTFChars(env, peerAddressesStr, NULL) : NULL;
+    Result res = DisconnectP2PPeers((uintptr_t)nodePtr, (char*)peerAddressesC, (uintptr_t)identityPtr);
     if (peerAddressesStr) (*env)->ReleaseStringUTFChars(env, peerAddressesStr, peerAddressesC);
     return returnDefraResult(env, res);
 }
