@@ -7,17 +7,10 @@
 void releaseJavaNodeInitOptions(JNIEnv* env, jobject optionsObj, NodeInitOptions opts);
 void releaseJavaCollectionOptions(JNIEnv* env, jobject optionsObj, CollectionOptions opts);
 
-// jstring_from_utf8_bytes builds a Java String from a raw, full-UTF-8-encoded
-// byte buffer via new String(byte[], "UTF-8"). NewStringUTF (used elsewhere in
-// this file) requires "modified UTF-8", which caps sequences at 3 bytes and
-// represents supplementary-plane characters (>= U+10000) as surrogate pairs
-// instead of the standard 4-byte encoding; fed a genuine 4-byte UTF-8
-// sequence, it silently corrupts/truncates decoding partway through. Go's
-// json.Marshal guarantees valid *standard* UTF-8 output (invalid byte runs
-// get replaced with U+FFFD) but happily emits real 4-byte sequences when it
-// finds them - and a multi-megabyte value embedding raw binary (e.g.
-// ListLenses' embedded WASM module bytes) has a real chance of containing
-// some by pure coincidence. This constructor has no such restriction.
+// Creates a Java String from standard UTF-8 bytes. NewStringUTF expects
+// modified UTF-8 and can corrupt valid 4-byte UTF-8 sequences produced by
+// Go's json.Marshal (such as in embedded binary data).
+// Explicitly: this fixes a bug that was getting hit when passing in lenses.
 static jstring jstring_from_utf8_bytes(JNIEnv* env, const char* utf8, size_t len) {
     if (utf8 == NULL) {
         return NULL;
