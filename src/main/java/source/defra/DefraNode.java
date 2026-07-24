@@ -35,7 +35,8 @@ public class DefraNode {
     private native DefraResult PatchCollectionNative(long nodePtr, String patch, String lensConfig, long identityPtr);
     private native DefraResult SetActiveCollectionNative(long nodePtr, DefraCollectionOptions options, long identityPtr);
     private native DefraResult TruncateCollectionNative(long nodePtr, DefraCollectionOptions options, long identityPtr);
-    
+    private native DefraResult DeleteCollectionNative(long nodePtr, String names, int activeOnly, long identityPtr);
+
     // Document Methods
     private native DefraResult AddDocumentNative(long nodePtr, String json, int isEncrypted, String encryptedFields, DefraCollectionOptions options, long identityPtr);
     private native DefraResult DeleteDocumentNative(long nodePtr, String docID, String filter, DefraCollectionOptions options, long identityPtr);
@@ -58,6 +59,9 @@ public class DefraNode {
     private native DefraResult ExportIdentityPrivateKeyNative(long identityPtr);
     private native DefraResult GetNodeIdentityNative(long nodePtr);
     private native void FreeIdentityNative(long identityPtr);
+
+    // Action Methods
+    private native DefraResult ListActionsNative(long nodePtr, long identityPtr);
     
     // Lens Methods
     private native DefraResult SetLensNative(long nodePtr, long identityPtr, String src, String dst, String cfg);
@@ -116,7 +120,39 @@ public class DefraNode {
 	private final ExecutorService callbackExecutor = Executors.newCachedThreadPool();
 	private volatile boolean dispatcherRunning = true;
 	private final Thread dispatcherThread;
-	
+
+	// Package-private constructor used by fromPtr — does not call NewNodeNative.
+	// The node lifecycle is managed externally (e.g. by the Go test harness).
+	DefraNode(long externalNodePtr) {
+		this.nodePtr = externalNodePtr;
+		this.dispatcherThread = new Thread(() -> {
+			while (dispatcherRunning) {
+				for (ConcurrentHashMap.Entry<String, ActiveSubscription> entry : subscriptions.entrySet()) {
+					ActiveSubscription sub = entry.getValue();
+					DefraResult poll = PollSubscriptionNative(sub.handle);
+					if (poll.status == 0 && poll.value != null && !poll.value.isEmpty()) {
+						callbackExecutor.submit(() -> sub.callback.accept(poll.value));
+					}
+				}
+				try {
+					Thread.sleep(10);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					break;
+				}
+			}
+		});
+		this.dispatcherThread.setDaemon(true);
+		this.dispatcherThread.setName("defra-subscription-dispatcher");
+		this.dispatcherThread.start();
+	}
+
+	// fromPtr wraps an externally-managed node pointer (a cgo.Handle value from
+	// the Go test harness). The caller owns the handle lifecycle.
+	static DefraNode fromPtr(long nodePtr) {
+		return new DefraNode(nodePtr);
+	}
+
 	// Constructor
 	public DefraNode(DefraNodeInitOptions options) throws DefraException {
 		DefraNewNodeResult result = NewNodeNative(options);
@@ -401,6 +437,20 @@ public class DefraNode {
         return result.value;
     }
 
+    public void deleteCollection(String[] names, boolean activeOnly) throws DefraException {
+        DefraResult result = DeleteCollectionNative(this.nodePtr, String.join(",", names), activeOnly ? 1 : 0, 0);
+        if (result.status != 0) {
+            throw new DefraException(result.error);
+        }
+    }
+
+    public void deleteCollection(String[] names, boolean activeOnly, DefraIdentity identity) throws DefraException {
+        DefraResult result = DeleteCollectionNative(this.nodePtr, String.join(",", names), activeOnly ? 1 : 0, identity.getPointer());
+        if (result.status != 0) {
+            throw new DefraException(result.error);
+        }
+    }
+
     // Document Methods
     public String addDocument(String json, boolean isEncrypted, String encryptedFields, DefraCollectionOptions options) throws DefraException {
         DefraResult result = AddDocumentNative(this.nodePtr, json, isEncrypted ? 1 : 0, encryptedFields, options, 0);
@@ -599,6 +649,23 @@ public class DefraNode {
 
     public void freeIdentity(DefraIdentity identity) throws DefraException {
         FreeIdentityNative(identity.getPointer());
+    }
+
+    // Action Methods
+    public String listActions() throws DefraException {
+        DefraResult result = ListActionsNative(this.nodePtr, 0);
+        if (result.status != 0) {
+            throw new DefraException(result.error);
+        }
+        return result.value;
+    }
+
+    public String listActions(DefraIdentity identity) throws DefraException {
+        DefraResult result = ListActionsNative(this.nodePtr, identity.getPointer());
+        if (result.status != 0) {
+            throw new DefraException(result.error);
+        }
+        return result.value;
     }
 
     // Lens Methods

@@ -7,9 +7,31 @@
 void releaseJavaNodeInitOptions(JNIEnv* env, jobject optionsObj, NodeInitOptions opts);
 void releaseJavaCollectionOptions(JNIEnv* env, jobject optionsObj, CollectionOptions opts);
 
+// Creates a Java String from standard UTF-8 bytes. NewStringUTF expects
+// modified UTF-8 and can corrupt valid 4-byte UTF-8 sequences produced by
+// Go's json.Marshal (such as in embedded binary data).
+// Explicitly: this fixes a bug that was getting hit when passing in lenses.
+static jstring jstring_from_utf8_bytes(JNIEnv* env, const char* utf8, size_t len) {
+    if (utf8 == NULL) {
+        return NULL;
+    }
+    jbyteArray bytes = (*env)->NewByteArray(env, (jsize)len);
+    if (bytes == NULL) {
+        return NULL;
+    }
+    (*env)->SetByteArrayRegion(env, bytes, 0, (jsize)len, (const jbyte*)utf8);
+    jclass stringCls = (*env)->FindClass(env, "java/lang/String");
+    jmethodID ctor = (*env)->GetMethodID(env, stringCls, "<init>", "([BLjava/lang/String;)V");
+    jstring charsetName = (*env)->NewStringUTF(env, "UTF-8");
+    jstring result = (jstring)(*env)->NewObject(env, stringCls, ctor, bytes, charsetName);
+    (*env)->DeleteLocalRef(env, bytes);
+    (*env)->DeleteLocalRef(env, charsetName);
+    return result;
+}
+
 jobject returnDefraResult(JNIEnv* env, Result res) {
-    jstring errorStr = res.error ? (*env)->NewStringUTF(env, res.error) : NULL;
-    jstring valueStr = res.value ? (*env)->NewStringUTF(env, res.value) : NULL;
+    jstring errorStr = res.error ? jstring_from_utf8_bytes(env, res.error, strlen(res.error)) : NULL;
+    jstring valueStr = res.value ? jstring_from_utf8_bytes(env, res.value, strlen(res.value)) : NULL;
     if (res.error) free(res.error);
     if (res.value) free(res.value);
     jclass cls = (*env)->FindClass(env, "source/defra/DefraResult");
@@ -704,6 +726,30 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_GetNodeIdentityNative(
     return returnDefraResult(env, res);
 }
 
+JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_ListActionsNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jlong identityPtr
+) {
+    Result res = ListActions((uintptr_t)nodePtr, (uintptr_t)identityPtr);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_DeleteCollectionNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jstring namesStr,
+    jint activeOnly,
+    jlong identityPtr
+) {
+    const char* namesC = namesStr ? (*env)->GetStringUTFChars(env, namesStr, NULL) : NULL;
+    Result res = DeleteCollection((uintptr_t)nodePtr, (char*)namesC, (int)activeOnly, (uintptr_t)identityPtr);
+    if (namesStr) (*env)->ReleaseStringUTFChars(env, namesStr, namesC);
+    return returnDefraResult(env, res);
+}
+
 JNIEXPORT void JNICALL Java_source_defra_DefraNode_FreeIdentityNative(
     JNIEnv* env,
     jobject thiz,
@@ -1070,15 +1116,24 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_RefreshViewNative(
 }
 
 //=============================================================================
-// Transaction JNI Functions
+// DefraNode transaction-create JNI function
 //=============================================================================
 
-JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_TransactionCreateNative(
+// Bound under DefraNode (not DefraTransaction, despite the C symbol name
+// below being left as-is for now) with the 3-arg signature DefraNode.java
+// actually declares (TransactionCreateNative(long, boolean isConcurrent,
+// boolean isReadOnly)) - the previous 2-arg version here didn't match that
+// declaration's arity, and was registered under the wrong class name.
+// isConcurrent has no corresponding parameter in the C API and is accepted
+// but ignored.
+JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_TransactionCreateNative(
     JNIEnv* env,
     jobject thiz,
     jlong nodePtr,
+    jboolean isConcurrent,
     jboolean isReadOnly
 ) {
+    (void)isConcurrent;
     int isReadOnlyC = (isReadOnly == JNI_TRUE) ? 1 : 0;
     NewTxnResult res = CreateTransaction((uintptr_t)nodePtr, isReadOnlyC);
     return returnDefraTransactionResult(env, res);

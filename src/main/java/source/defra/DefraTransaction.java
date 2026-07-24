@@ -7,8 +7,8 @@ import org.json.JSONException;
 public class DefraTransaction {
 
     static {
-		System.loadLibrary("nativewrapper");
-        System.loadLibrary("defradb");
+        NativeLoader.load("nativewrapper");
+        NativeLoader.load("defradb");
     }
 
     // Core Transaction Methods
