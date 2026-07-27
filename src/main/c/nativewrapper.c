@@ -1120,20 +1120,18 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_RefreshViewNative(
 //=============================================================================
 
 // Bound under DefraNode (not DefraTransaction, despite the C symbol name
-// below being left as-is for now) with the 3-arg signature DefraNode.java
-// actually declares (TransactionCreateNative(long, boolean isConcurrent,
-// boolean isReadOnly)) - the previous 2-arg version here didn't match that
-// declaration's arity, and was registered under the wrong class name.
-// isConcurrent has no corresponding parameter in the C API and is accepted
-// but ignored.
+// below being left as-is for now) with the 2-arg signature DefraNode.java
+// actually declares (TransactionCreateNative(long, boolean isReadOnly)) - the
+// previous version here didn't match that declaration's arity, and was
+// registered under the wrong class name. isConcurrent was removed from both
+// this native method and the cbindings CreateTransaction API it wraps, which
+// never had a corresponding parameter for it.
 JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_TransactionCreateNative(
     JNIEnv* env,
     jobject thiz,
     jlong nodePtr,
-    jboolean isConcurrent,
     jboolean isReadOnly
 ) {
-    (void)isConcurrent;
     int isReadOnlyC = (isReadOnly == JNI_TRUE) ? 1 : 0;
     NewTxnResult res = CreateTransaction((uintptr_t)nodePtr, isReadOnlyC);
     return returnDefraTransactionResult(env, res);

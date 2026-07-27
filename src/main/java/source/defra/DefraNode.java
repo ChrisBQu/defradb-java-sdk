@@ -102,7 +102,7 @@ public class DefraNode {
     private native DefraResult VerifyBlockSignatureNative(long nodePtr, String keyType, String publicKey, String cid, long identityPtr);
     
     // Transaction Methods
-    private native DefraTransactionResult TransactionCreateNative(long nodePtr, boolean isConcurrent, boolean isReadOnly);
+    private native DefraTransactionResult TransactionCreateNative(long nodePtr, boolean isReadOnly);
     
 	// Private members
     private long nodePtr;
@@ -1051,8 +1051,8 @@ public class DefraNode {
     }
 
     // Function creates a new transaction
-    public DefraTransaction transactionCreate(boolean isConcurrent, boolean isReadOnly) throws DefraException {
-        DefraTransactionResult txnResult = TransactionCreateNative(this.nodePtr, isConcurrent, isReadOnly);
+    public DefraTransaction transactionCreate(boolean isReadOnly) throws DefraException {
+        DefraTransactionResult txnResult = TransactionCreateNative(this.nodePtr, isReadOnly);
         if (txnResult.status != 0) {
             throw new DefraException(txnResult.error);
         }
