@@ -1,16 +1,42 @@
+// Copyright 2026 Democratized Data Foundation
+//
+// Use of this software is governed by the Business Source License
+// included in the file licenses/BSL.txt.
+//
+// As of the Change Date specified in that file, in accordance with
+// the Business Source License, use of this software will be governed
+// by the Apache License, Version 2.0, included in the file
+// licenses/APL.txt.
+
+//go:build javaclient
+
 #include <jni.h>
 #include "libdefradb.h"
 #include <stdlib.h>
 #include <string.h>
 
+// This is the canonical, ground-truth JNI native implementation for the DefraDB Java SDK. It lives here, in the
+// cbindings, instead of in the separate defradb-java-sdk repo for important logistics reasons. This file is necessary 
+// to build the Java test client. This would mean that two versions of the file need to be maintained and kept in
+// sync with one another. Instead of that, we keep one version here, and the Java SDK project's build script retrieves
+// a copy of it dynamically during build (because building the Java SDK requires that a path to the defra directory)
+// be passed in.
+
 // Forward declarations
 void releaseJavaNodeInitOptions(JNIEnv* env, jobject optionsObj, NodeInitOptions opts);
 void releaseJavaCollectionOptions(JNIEnv* env, jobject optionsObj, CollectionOptions opts);
 
-// Creates a Java String from standard UTF-8 bytes. NewStringUTF expects
-// modified UTF-8 and can corrupt valid 4-byte UTF-8 sequences produced by
-// Go's json.Marshal (such as in embedded binary data).
-// Explicitly: this fixes a bug that was getting hit when passing in lenses.
+// jstring_from_utf8_bytes builds a Java String from a raw, full-UTF-8-encoded
+// byte buffer via new String(byte[], "UTF-8"). NewStringUTF (used elsewhere in
+// this file) requires "modified UTF-8", which caps sequences at 3 bytes and
+// represents supplementary-plane characters (>= U+10000) as surrogate pairs
+// instead of the standard 4-byte encoding; fed a genuine 4-byte UTF-8
+// sequence, it silently corrupts/truncates decoding partway through. Go's
+// json.Marshal guarantees valid *standard* UTF-8 output (invalid byte runs
+// get replaced with U+FFFD) but happily emits real 4-byte sequences when it
+// finds them - and a multi-megabyte value embedding raw binary (e.g.
+// ListLenses' embedded WASM module bytes) has a real chance of containing
+// some by pure coincidence. This constructor has no such restriction.
 static jstring jstring_from_utf8_bytes(JNIEnv* env, const char* utf8, size_t len) {
     if (utf8 == NULL) {
         return NULL;
@@ -241,6 +267,18 @@ CollectionOptions convertJavaCollectionOptions(JNIEnv* env, jobject optionsObj) 
     // Boolean
     jfieldID fid_getInactive = (*env)->GetFieldID(env, cls, "getInactive", "Z");
     opts.getInactive = (*env)->GetBooleanField(env, optionsObj, fid_getInactive) ? 1 : 0;
+
+    // enableSigning is a boxed java.lang.Boolean (nullable), matching CollectionOptions'
+    // own tri-state: null means unset (0), otherwise 1 (true) or -1 (false).
+    jfieldID fid_enableSigning = (*env)->GetFieldID(env, cls, "enableSigning", "Ljava/lang/Boolean;");
+    jobject enableSigningObj = (*env)->GetObjectField(env, optionsObj, fid_enableSigning);
+    if (enableSigningObj != NULL) {
+        jclass booleanCls = (*env)->GetObjectClass(env, enableSigningObj);
+        jmethodID booleanValueMid = (*env)->GetMethodID(env, booleanCls, "booleanValue", "()Z");
+        opts.enableSigning = (*env)->CallBooleanMethod(env, enableSigningObj, booleanValueMid) ? 1 : -1;
+    } else {
+        opts.enableSigning = 0;
+    }
 
     return opts;
 }
@@ -537,7 +575,7 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_AddDocumentNative(
     jobject thiz,
     jlong nodePtr,
     jstring jsonStr,
-    jint isEncrypted,
+    jboolean isEncrypted,
     jstring encryptedFieldsStr,
     jobject optionsObj,
     jlong identityPtr
@@ -545,7 +583,8 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_AddDocumentNative(
     const char* jsonC = jsonStr ? (*env)->GetStringUTFChars(env, jsonStr, NULL) : NULL;
     const char* encryptedFieldsC = encryptedFieldsStr ? (*env)->GetStringUTFChars(env, encryptedFieldsStr, NULL) : NULL;
     CollectionOptions opts = convertJavaCollectionOptions(env, optionsObj);
-    Result res = AddDocument((uintptr_t)nodePtr, (char*)jsonC, isEncrypted, (char*)encryptedFieldsC, opts, (uintptr_t)identityPtr);
+    int isEncryptedC = (isEncrypted == JNI_TRUE) ? 1 : 0;
+    Result res = AddDocument((uintptr_t)nodePtr, (char*)jsonC, isEncryptedC, (char*)encryptedFieldsC, opts, (uintptr_t)identityPtr);
     if (jsonStr) (*env)->ReleaseStringUTFChars(env, jsonStr, jsonC);
     if (encryptedFieldsStr) (*env)->ReleaseStringUTFChars(env, encryptedFieldsStr, encryptedFieldsC);
     releaseJavaCollectionOptions(env, optionsObj, opts);
@@ -800,7 +839,7 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_ListLensesNative(
     return returnDefraResult(env, res);
 }
 
-JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_BlockVerifySignatureNative(
+JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_VerifyBlockSignatureNative(
     JNIEnv* env,
     jobject thiz,
     jlong nodePtr,
@@ -1118,14 +1157,9 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_RefreshViewNative(
 //=============================================================================
 // DefraNode transaction-create JNI function
 //=============================================================================
-
-// Bound under DefraNode (not DefraTransaction, despite the C symbol name
-// below being left as-is for now) with the 2-arg signature DefraNode.java
-// actually declares (TransactionCreateNative(long, boolean isReadOnly)) - the
-// previous version here didn't match that declaration's arity, and was
-// registered under the wrong class name. isConcurrent was removed from both
-// this native method and the cbindings CreateTransaction API it wraps, which
-// never had a corresponding parameter for it.
+// See the file header comment: this is bound under DefraNode (not
+// DefraTransaction) with the 2-arg signature DefraNode.java actually
+// declares.
 JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_TransactionCreateNative(
     JNIEnv* env,
     jobject thiz,
@@ -1280,7 +1314,7 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_AddDocumentNative(
     jobject thiz,
     jlong nodePtr,
     jstring jsonStr,
-    jint isEncrypted,
+    jboolean isEncrypted,
     jstring encryptedFieldsStr,
     jobject optionsObj,
     jlong identityPtr
@@ -1288,7 +1322,8 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_AddDocumentNative(
     const char* jsonC = jsonStr ? (*env)->GetStringUTFChars(env, jsonStr, NULL) : NULL;
     const char* encryptedFieldsC = encryptedFieldsStr ? (*env)->GetStringUTFChars(env, encryptedFieldsStr, NULL) : NULL;
     CollectionOptions opts = convertJavaCollectionOptions(env, optionsObj);
-    Result res = AddDocument((uintptr_t)nodePtr, (char*)jsonC, isEncrypted, (char*)encryptedFieldsC, opts, (uintptr_t)identityPtr);
+    int isEncryptedC = (isEncrypted == JNI_TRUE) ? 1 : 0;
+    Result res = AddDocument((uintptr_t)nodePtr, (char*)jsonC, isEncryptedC, (char*)encryptedFieldsC, opts, (uintptr_t)identityPtr);
     if (jsonStr) (*env)->ReleaseStringUTFChars(env, jsonStr, jsonC);
     if (encryptedFieldsStr) (*env)->ReleaseStringUTFChars(env, encryptedFieldsStr, encryptedFieldsC);
     releaseJavaCollectionOptions(env, optionsObj, opts);
@@ -1564,6 +1599,144 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_RefreshViewNative(
     return returnDefraResult(env, res);
 }
 
+// The following DefraTransaction natives were missing entirely (declared in
+// DefraTransaction.java but never implemented here upstream) - added so this
+// client can genuinely exercise DefraTransaction's own local-data/schema
+// methods, rather than only ever calling DefraNode's equivalents with a
+// transaction handle substituted in. Mirrors the DefraNode implementations
+// of the same name exactly, since they call the same cbindings functions.
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_DescribeCollectionNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jobject optionsObj,
+    jlong identityPtr
+) {
+    CollectionOptions opts = convertJavaCollectionOptions(env, optionsObj);
+    Result res = DescribeCollection((uintptr_t)nodePtr, opts, (uintptr_t)identityPtr);
+    releaseJavaCollectionOptions(env, optionsObj, opts);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_TruncateCollectionNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jobject optionsObj,
+    jlong identityPtr
+) {
+    CollectionOptions opts = convertJavaCollectionOptions(env, optionsObj);
+    Result res = TruncateCollection((uintptr_t)nodePtr, opts, (uintptr_t)identityPtr);
+    releaseJavaCollectionOptions(env, optionsObj, opts);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_NewEncryptedIndexNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jstring collectionNameStr,
+    jstring fieldNameStr,
+    jlong identityPtr
+) {
+    const char* collectionNameC = collectionNameStr ? (*env)->GetStringUTFChars(env, collectionNameStr, NULL) : NULL;
+    const char* fieldNameC = fieldNameStr ? (*env)->GetStringUTFChars(env, fieldNameStr, NULL) : NULL;
+    Result res = NewEncryptedIndex((uintptr_t)nodePtr, (char*)collectionNameC, (char*)fieldNameC, (uintptr_t)identityPtr);
+    if (collectionNameStr) (*env)->ReleaseStringUTFChars(env, collectionNameStr, collectionNameC);
+    if (fieldNameStr) (*env)->ReleaseStringUTFChars(env, fieldNameStr, fieldNameC);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_ListEncryptedIndexesNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jstring collectionNameStr,
+    jlong identityPtr
+) {
+    const char* collectionNameC = collectionNameStr ? (*env)->GetStringUTFChars(env, collectionNameStr, NULL) : NULL;
+    Result res = ListEncryptedIndexes((uintptr_t)nodePtr, (char*)collectionNameC, (uintptr_t)identityPtr);
+    if (collectionNameStr) (*env)->ReleaseStringUTFChars(env, collectionNameStr, collectionNameC);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_DeleteEncryptedIndexNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jstring collectionNameStr,
+    jstring fieldNameStr,
+    jlong identityPtr
+) {
+    const char* collectionNameC = collectionNameStr ? (*env)->GetStringUTFChars(env, collectionNameStr, NULL) : NULL;
+    const char* fieldNameC = fieldNameStr ? (*env)->GetStringUTFChars(env, fieldNameStr, NULL) : NULL;
+    Result res = DeleteEncryptedIndex((uintptr_t)nodePtr, (char*)collectionNameC, (char*)fieldNameC, (uintptr_t)identityPtr);
+    if (collectionNameStr) (*env)->ReleaseStringUTFChars(env, collectionNameStr, collectionNameC);
+    if (fieldNameStr) (*env)->ReleaseStringUTFChars(env, fieldNameStr, fieldNameC);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_SetLensNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jlong identityPtr,
+    jstring srcStr,
+    jstring dstStr,
+    jstring cfgStr
+) {
+    const char* srcC = srcStr ? (*env)->GetStringUTFChars(env, srcStr, NULL) : NULL;
+    const char* dstC = dstStr ? (*env)->GetStringUTFChars(env, dstStr, NULL) : NULL;
+    const char* cfgC = cfgStr ? (*env)->GetStringUTFChars(env, cfgStr, NULL) : NULL;
+    Result res = SetLens((uintptr_t)nodePtr, (uintptr_t)identityPtr, (char*)srcC, (char*)dstC, (char*)cfgC);
+    if (srcStr) (*env)->ReleaseStringUTFChars(env, srcStr, srcC);
+    if (dstStr) (*env)->ReleaseStringUTFChars(env, dstStr, dstC);
+    if (cfgStr) (*env)->ReleaseStringUTFChars(env, cfgStr, cfgC);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_AddLensNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jlong identityPtr,
+    jstring cfgStr
+) {
+    const char* cfgC = cfgStr ? (*env)->GetStringUTFChars(env, cfgStr, NULL) : NULL;
+    Result res = AddLens((uintptr_t)nodePtr, (uintptr_t)identityPtr, (char*)cfgC);
+    if (cfgStr) (*env)->ReleaseStringUTFChars(env, cfgStr, cfgC);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_ListLensesNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jlong identityPtr
+) {
+    Result res = ListLenses((uintptr_t)nodePtr, (uintptr_t)identityPtr);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_VerifyBlockSignatureNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jstring keyTypeStr,
+    jstring publicKeyStr,
+    jstring cidStr,
+    jlong identityPtr
+) {
+    const char* keyTypeC = keyTypeStr ? (*env)->GetStringUTFChars(env, keyTypeStr, NULL) : NULL;
+    const char* publicKeyC = publicKeyStr ? (*env)->GetStringUTFChars(env, publicKeyStr, NULL) : NULL;
+    const char* cidC = cidStr ? (*env)->GetStringUTFChars(env, cidStr, NULL) : NULL;
+    Result res = VerifyBlockSignature((uintptr_t)nodePtr, (char*)keyTypeC, (char*)publicKeyC, (char*)cidC, (uintptr_t)identityPtr);
+    if (keyTypeStr) (*env)->ReleaseStringUTFChars(env, keyTypeStr, keyTypeC);
+    if (publicKeyStr) (*env)->ReleaseStringUTFChars(env, publicKeyStr, publicKeyC);
+    if (cidStr) (*env)->ReleaseStringUTFChars(env, cidStr, cidC);
+    return returnDefraResult(env, res);
+}
+
 //=============================================================================
 // DefraCollection JNI Functions
 //=============================================================================
@@ -1574,7 +1747,7 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraCollection_AddDocumentNative(
     jobject thiz,
     jlong nodePtr,
     jstring jsonStr,
-    jint isEncrypted,
+    jboolean isEncrypted,
     jstring encryptedFieldsStr,
     jobject optionsObj,
     jlong identityPtr
@@ -1582,7 +1755,8 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraCollection_AddDocumentNative(
     const char* jsonC = jsonStr ? (*env)->GetStringUTFChars(env, jsonStr, NULL) : NULL;
     const char* encryptedFieldsC = encryptedFieldsStr ? (*env)->GetStringUTFChars(env, encryptedFieldsStr, NULL) : NULL;
     CollectionOptions opts = convertJavaCollectionOptions(env, optionsObj);
-    Result res = AddDocument((uintptr_t)nodePtr, (char*)jsonC, isEncrypted, (char*)encryptedFieldsC, opts, (uintptr_t)identityPtr);
+    int isEncryptedC = (isEncrypted == JNI_TRUE) ? 1 : 0;
+    Result res = AddDocument((uintptr_t)nodePtr, (char*)jsonC, isEncryptedC, (char*)encryptedFieldsC, opts, (uintptr_t)identityPtr);
     if (jsonStr) (*env)->ReleaseStringUTFChars(env, jsonStr, jsonC);
     if (encryptedFieldsStr) (*env)->ReleaseStringUTFChars(env, encryptedFieldsStr, encryptedFieldsC);
     releaseJavaCollectionOptions(env, optionsObj, opts);

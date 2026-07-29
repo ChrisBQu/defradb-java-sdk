@@ -38,7 +38,7 @@ public class DefraNode {
     private native DefraResult DeleteCollectionNative(long nodePtr, String names, int activeOnly, long identityPtr);
 
     // Document Methods
-    private native DefraResult AddDocumentNative(long nodePtr, String json, int isEncrypted, String encryptedFields, DefraCollectionOptions options, long identityPtr);
+    private native DefraResult AddDocumentNative(long nodePtr, String json, boolean isEncrypted, String encryptedFields, DefraCollectionOptions options, long identityPtr);
     private native DefraResult DeleteDocumentNative(long nodePtr, String docID, String filter, DefraCollectionOptions options, long identityPtr);
     private native DefraResult GetDocumentNative(long nodePtr, String docID, boolean showDeleted, DefraCollectionOptions options, long identityPtr);
     private native DefraResult UpdateDocumentNative(long nodePtr, String docID, String filter, String updater, DefraCollectionOptions options, long identityPtr);
@@ -453,7 +453,7 @@ public class DefraNode {
 
     // Document Methods
     public String addDocument(String json, boolean isEncrypted, String encryptedFields, DefraCollectionOptions options) throws DefraException {
-        DefraResult result = AddDocumentNative(this.nodePtr, json, isEncrypted ? 1 : 0, encryptedFields, options, 0);
+        DefraResult result = AddDocumentNative(this.nodePtr, json, isEncrypted, encryptedFields, options, 0);
         if (result.status != 0) {
             throw new DefraException(result.error);
         }
@@ -461,7 +461,7 @@ public class DefraNode {
     }
 
     public String addDocument(String json, boolean isEncrypted, String encryptedFields, DefraCollectionOptions options, DefraIdentity identity) throws DefraException {
-        DefraResult result = AddDocumentNative(this.nodePtr, json, isEncrypted ? 1 : 0, encryptedFields, options, identity.getPointer());
+        DefraResult result = AddDocumentNative(this.nodePtr, json, isEncrypted, encryptedFields, options, identity.getPointer());
         if (result.status != 0) {
             throw new DefraException(result.error);
         }
