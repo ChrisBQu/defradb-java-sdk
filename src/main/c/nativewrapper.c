@@ -1564,12 +1564,6 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_RefreshViewNative(
     return returnDefraResult(env, res);
 }
 
-// The following DefraTransaction natives were missing entirely (declared in
-// DefraTransaction.java but never implemented here) - added so this SDK's
-// own transaction object can genuinely support these local-data/schema
-// methods, not just the ones it already had. Mirrors the DefraNode
-// implementations of the same name exactly, since they call the same
-// cbindings functions.
 JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_DescribeCollectionNative(
     JNIEnv* env,
     jobject thiz,
