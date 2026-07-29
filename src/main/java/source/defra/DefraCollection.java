@@ -7,7 +7,7 @@ public class DefraCollection {
     }
 	
 	// Document Methods
-    private native DefraResult AddDocumentNative(long nodePtr, String json, int isEncrypted, String encryptedFields, DefraCollectionOptions options, long identityPtr);
+    private native DefraResult AddDocumentNative(long nodePtr, String json, boolean isEncrypted, String encryptedFields, DefraCollectionOptions options, long identityPtr);
     private native DefraResult DeleteDocumentNative(long nodePtr, String docID, String filter, DefraCollectionOptions options, long identityPtr);
     private native DefraResult GetDocumentNative(long nodePtr, String docID, boolean showDeleted, DefraCollectionOptions options, long identityPtr);
     private native DefraResult UpdateDocumentNative(long nodePtr, String docID, String filter, String updater, DefraCollectionOptions options, long identityPtr);
@@ -56,7 +56,7 @@ public class DefraCollection {
 	
     // Document Methods
     public String addDocument(String json, boolean isEncrypted, String encryptedFields) throws DefraException {
-        DefraResult result = AddDocumentNative(this.storePtr, json, isEncrypted ? 1 : 0, encryptedFields, collectionOptionsFromThis(), 0);
+        DefraResult result = AddDocumentNative(this.storePtr, json, isEncrypted, encryptedFields, collectionOptionsFromThis(), 0);
         if (result.status != 0) {
             throw new DefraException(result.error);
         }
@@ -64,7 +64,7 @@ public class DefraCollection {
     }
 
     public String addDocument(String json, boolean isEncrypted, String encryptedFields, DefraIdentity identity) throws DefraException {
-        DefraResult result = AddDocumentNative(this.storePtr, json, isEncrypted ? 1 : 0, encryptedFields, collectionOptionsFromThis(), identity.getPointer());
+        DefraResult result = AddDocumentNative(this.storePtr, json, isEncrypted, encryptedFields, collectionOptionsFromThis(), identity.getPointer());
         if (result.status != 0) {
             throw new DefraException(result.error);
         }
