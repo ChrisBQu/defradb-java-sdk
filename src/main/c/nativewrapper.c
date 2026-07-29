@@ -800,7 +800,7 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_ListLensesNative(
     return returnDefraResult(env, res);
 }
 
-JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_BlockVerifySignatureNative(
+JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_VerifyBlockSignatureNative(
     JNIEnv* env,
     jobject thiz,
     jlong nodePtr,
@@ -1561,6 +1561,144 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_RefreshViewNative(
     CollectionOptions opts = convertJavaCollectionOptions(env, optionsObj);
     Result res = RefreshView((uintptr_t)nodePtr, opts, (uintptr_t)identityPtr);
     releaseJavaCollectionOptions(env, optionsObj, opts);
+    return returnDefraResult(env, res);
+}
+
+// The following DefraTransaction natives were missing entirely (declared in
+// DefraTransaction.java but never implemented here) - added so this SDK's
+// own transaction object can genuinely support these local-data/schema
+// methods, not just the ones it already had. Mirrors the DefraNode
+// implementations of the same name exactly, since they call the same
+// cbindings functions.
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_DescribeCollectionNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jobject optionsObj,
+    jlong identityPtr
+) {
+    CollectionOptions opts = convertJavaCollectionOptions(env, optionsObj);
+    Result res = DescribeCollection((uintptr_t)nodePtr, opts, (uintptr_t)identityPtr);
+    releaseJavaCollectionOptions(env, optionsObj, opts);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_TruncateCollectionNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jobject optionsObj,
+    jlong identityPtr
+) {
+    CollectionOptions opts = convertJavaCollectionOptions(env, optionsObj);
+    Result res = TruncateCollection((uintptr_t)nodePtr, opts, (uintptr_t)identityPtr);
+    releaseJavaCollectionOptions(env, optionsObj, opts);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_NewEncryptedIndexNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jstring collectionNameStr,
+    jstring fieldNameStr,
+    jlong identityPtr
+) {
+    const char* collectionNameC = collectionNameStr ? (*env)->GetStringUTFChars(env, collectionNameStr, NULL) : NULL;
+    const char* fieldNameC = fieldNameStr ? (*env)->GetStringUTFChars(env, fieldNameStr, NULL) : NULL;
+    Result res = NewEncryptedIndex((uintptr_t)nodePtr, (char*)collectionNameC, (char*)fieldNameC, (uintptr_t)identityPtr);
+    if (collectionNameStr) (*env)->ReleaseStringUTFChars(env, collectionNameStr, collectionNameC);
+    if (fieldNameStr) (*env)->ReleaseStringUTFChars(env, fieldNameStr, fieldNameC);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_ListEncryptedIndexesNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jstring collectionNameStr,
+    jlong identityPtr
+) {
+    const char* collectionNameC = collectionNameStr ? (*env)->GetStringUTFChars(env, collectionNameStr, NULL) : NULL;
+    Result res = ListEncryptedIndexes((uintptr_t)nodePtr, (char*)collectionNameC, (uintptr_t)identityPtr);
+    if (collectionNameStr) (*env)->ReleaseStringUTFChars(env, collectionNameStr, collectionNameC);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_DeleteEncryptedIndexNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jstring collectionNameStr,
+    jstring fieldNameStr,
+    jlong identityPtr
+) {
+    const char* collectionNameC = collectionNameStr ? (*env)->GetStringUTFChars(env, collectionNameStr, NULL) : NULL;
+    const char* fieldNameC = fieldNameStr ? (*env)->GetStringUTFChars(env, fieldNameStr, NULL) : NULL;
+    Result res = DeleteEncryptedIndex((uintptr_t)nodePtr, (char*)collectionNameC, (char*)fieldNameC, (uintptr_t)identityPtr);
+    if (collectionNameStr) (*env)->ReleaseStringUTFChars(env, collectionNameStr, collectionNameC);
+    if (fieldNameStr) (*env)->ReleaseStringUTFChars(env, fieldNameStr, fieldNameC);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_SetLensNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jlong identityPtr,
+    jstring srcStr,
+    jstring dstStr,
+    jstring cfgStr
+) {
+    const char* srcC = srcStr ? (*env)->GetStringUTFChars(env, srcStr, NULL) : NULL;
+    const char* dstC = dstStr ? (*env)->GetStringUTFChars(env, dstStr, NULL) : NULL;
+    const char* cfgC = cfgStr ? (*env)->GetStringUTFChars(env, cfgStr, NULL) : NULL;
+    Result res = SetLens((uintptr_t)nodePtr, (uintptr_t)identityPtr, (char*)srcC, (char*)dstC, (char*)cfgC);
+    if (srcStr) (*env)->ReleaseStringUTFChars(env, srcStr, srcC);
+    if (dstStr) (*env)->ReleaseStringUTFChars(env, dstStr, dstC);
+    if (cfgStr) (*env)->ReleaseStringUTFChars(env, cfgStr, cfgC);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_AddLensNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jlong identityPtr,
+    jstring cfgStr
+) {
+    const char* cfgC = cfgStr ? (*env)->GetStringUTFChars(env, cfgStr, NULL) : NULL;
+    Result res = AddLens((uintptr_t)nodePtr, (uintptr_t)identityPtr, (char*)cfgC);
+    if (cfgStr) (*env)->ReleaseStringUTFChars(env, cfgStr, cfgC);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_ListLensesNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jlong identityPtr
+) {
+    Result res = ListLenses((uintptr_t)nodePtr, (uintptr_t)identityPtr);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_VerifyBlockSignatureNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jstring keyTypeStr,
+    jstring publicKeyStr,
+    jstring cidStr,
+    jlong identityPtr
+) {
+    const char* keyTypeC = keyTypeStr ? (*env)->GetStringUTFChars(env, keyTypeStr, NULL) : NULL;
+    const char* publicKeyC = publicKeyStr ? (*env)->GetStringUTFChars(env, publicKeyStr, NULL) : NULL;
+    const char* cidC = cidStr ? (*env)->GetStringUTFChars(env, cidStr, NULL) : NULL;
+    Result res = VerifyBlockSignature((uintptr_t)nodePtr, (char*)keyTypeC, (char*)publicKeyC, (char*)cidC, (uintptr_t)identityPtr);
+    if (keyTypeStr) (*env)->ReleaseStringUTFChars(env, keyTypeStr, keyTypeC);
+    if (publicKeyStr) (*env)->ReleaseStringUTFChars(env, publicKeyStr, publicKeyC);
+    if (cidStr) (*env)->ReleaseStringUTFChars(env, cidStr, cidC);
     return returnDefraResult(env, res);
 }
 
