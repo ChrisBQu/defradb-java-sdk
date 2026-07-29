@@ -11,7 +11,7 @@
 //go:build javaclient
 
 #include <jni.h>
-#include "defra_exports.h"
+#include "libdefradb.h"
 #include <stdlib.h>
 #include <string.h>
 
