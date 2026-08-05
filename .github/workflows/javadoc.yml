@@ -1,0 +1,29 @@
+name: Javadoc
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  javadoc:
+    name: Validate Javadoc
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "11"
+          cache: gradle
+
+      - name: Generate Javadoc
+        run: bash ./gradlew --no-daemon -b build-linux.gradle javadoc
