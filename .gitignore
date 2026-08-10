@@ -3,4 +3,3 @@ build/
 src/main/linuxLibs/
 src/main/jniLibs/
 src/main/c/*.h
-src/main/c/nativewrapper.c
