@@ -1,3 +1,13 @@
+// Copyright 2026 Democratized Data Foundation
+//
+// Use of this software is governed by the Business Source License
+// included in the file licenses/BSL.txt.
+//
+// As of the Change Date specified in that file, in accordance with
+// the Business Source License, use of this software will be governed
+// by the Apache License, Version 2.0, included in the file
+// licenses/APL.txt.
+
 package source.defra;
 
 import org.json.JSONArray;
@@ -2059,10 +2069,10 @@ public class DefraNode {
 
 	// Helper function for determining if the subscription query was not another type of query (i.e. mutation)
 	private boolean isSubscriptionQuery(String query) {
-		String stripped = query.strip().toLowerCase();
+		String stripped = query.trim().toLowerCase();
 		// Handle optional leading comments
 		for (String line : stripped.split("\n")) {
-			String trimmed = line.strip();
+			String trimmed = line.trim();
 			if (trimmed.startsWith("#")) continue;
 			return trimmed.startsWith("subscription");
 		}
