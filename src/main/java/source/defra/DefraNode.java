@@ -2069,10 +2069,10 @@ public class DefraNode {
 
 	// Helper function for determining if the subscription query was not another type of query (i.e. mutation)
 	private boolean isSubscriptionQuery(String query) {
-		String stripped = query.strip().toLowerCase();
+		String stripped = query.trim().toLowerCase();
 		// Handle optional leading comments
 		for (String line : stripped.split("\n")) {
-			String trimmed = line.strip();
+			String trimmed = line.trim();
 			if (trimmed.startsWith("#")) continue;
 			return trimmed.startsWith("subscription");
 		}
