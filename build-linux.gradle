@@ -29,6 +29,10 @@ dependencies {
     implementation 'org.json:json:20240303'
 }
 
+tasks.withType(Javadoc).configureEach {
+    options.addBooleanOption('Werror', true)
+}
+
 jar {
     from configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
