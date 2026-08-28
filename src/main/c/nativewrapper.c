@@ -2058,6 +2058,7 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraCollection_NewIndexNative(
     jstring indexNameStr,
     jstring fieldsStr,
     jboolean isUnique,
+    jstring vectorJSONStr,
     jobject optionsObj,
     jlong identityPtr
 ) {
@@ -2066,10 +2067,13 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraCollection_NewIndexNative(
     if (!optsOk) return NULL;
     const char* indexNameC = jstring_to_utf8(env, indexNameStr);
     const char* fieldsC = jstring_to_utf8(env, fieldsStr);
+    const char* vectorJSONC = jstring_to_utf8(env, vectorJSONStr);
     int isUniqueC = (isUnique == JNI_TRUE) ? 1 : 0;
-    Result res = NewIndex((uintptr_t)nodePtr, (char*)indexNameC, (char*)fieldsC, isUniqueC, opts, (uintptr_t)identityPtr);
+    Result res = NewIndex(
+        (uintptr_t)nodePtr, (char*)indexNameC, (char*)fieldsC, isUniqueC, (char*)vectorJSONC, opts, (uintptr_t)identityPtr);
     free((void*)indexNameC);
     free((void*)fieldsC);
+    free((void*)vectorJSONC);
     releaseJavaCollectionOptions(env, optionsObj, opts);
     return returnDefraResult(env, res);
 }
