@@ -51,7 +51,7 @@ public class DefraNode {
     private native DefraResult DescribeCollectionNative(long nodePtr, DefraCollectionOptions options, long identityPtr);
     private native DefraResult PatchCollectionNative(long nodePtr, String patch, String lensConfig, long identityPtr);
     private native DefraResult SetActiveCollectionNative(long nodePtr, DefraCollectionOptions options, long identityPtr);
-    private native DefraResult TruncateCollectionNative(long nodePtr, DefraCollectionOptions options, long identityPtr);
+    private native DefraResult TruncateCollectionNative(long nodePtr, String filterJSON, DefraCollectionOptions options, long identityPtr);
     private native DefraResult DeleteCollectionNative(long nodePtr, String names, int activeOnly, long identityPtr);
 
     // Document Methods
@@ -690,7 +690,7 @@ public class DefraNode {
      * @throws DefraException if DefraDB rejects the operation
      */
     public String truncateCollection(DefraCollectionOptions options) throws DefraException {
-        DefraResult result = TruncateCollectionNative(this.nodePtr, options, 0);
+        DefraResult result = TruncateCollectionNative(this.nodePtr, null, options, 0);
         if (result.status != 0) {
             throw new DefraException(result.error);
         }
@@ -708,7 +708,7 @@ public class DefraNode {
      * @throws DefraException if DefraDB rejects the operation
      */
     public String truncateCollection(DefraCollectionOptions options, DefraIdentity identity) throws DefraException {
-        DefraResult result = TruncateCollectionNative(this.nodePtr, options, identity.getPointer());
+        DefraResult result = TruncateCollectionNative(this.nodePtr, null, options, identity.getPointer());
         if (result.status != 0) {
             throw new DefraException(result.error);
         }
