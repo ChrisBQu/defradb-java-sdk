@@ -47,7 +47,7 @@ public class DefraTransaction {
     private native DefraResult DescribeCollectionNative(long txnPtr, DefraCollectionOptions options, long identityPtr);
     private native DefraResult PatchCollectionNative(long txnPtr, String patch, String lensConfig, long identityPtr);
     private native DefraResult SetActiveCollectionNative(long txnPtr, DefraCollectionOptions options, long identityPtr);
-    private native DefraResult TruncateCollectionNative(long txnPtr, DefraCollectionOptions options, long identityPtr);
+    private native DefraResult TruncateCollectionNative(long txnPtr, String filterJSON, DefraCollectionOptions options, long identityPtr);
     
     // Document Methods
     private native DefraResult AddDocumentNative(long txnPtr, String json, boolean isEncrypted, String encryptedFields, DefraCollectionOptions options, long identityPtr);
@@ -551,7 +551,7 @@ public class DefraTransaction {
      * @throws DefraException if DefraDB rejects the operation
      */
     public String truncateCollection(DefraCollectionOptions options) throws DefraException {
-        DefraResult result = TruncateCollectionNative(this.txnPtr, options, 0);
+        DefraResult result = TruncateCollectionNative(this.txnPtr, null, options, 0);
         if (result.status != 0) {
             throw new DefraException(result.error);
         }
@@ -569,7 +569,7 @@ public class DefraTransaction {
      * @throws DefraException if DefraDB rejects the operation
      */
     public String truncateCollection(DefraCollectionOptions options, DefraIdentity identity) throws DefraException {
-        DefraResult result = TruncateCollectionNative(this.txnPtr, options, identity.getPointer());
+        DefraResult result = TruncateCollectionNative(this.txnPtr, null, options, identity.getPointer());
         if (result.status != 0) {
             throw new DefraException(result.error);
         }
