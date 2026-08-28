@@ -35,7 +35,7 @@ public class DefraCollection {
     private native DefraResult DeleteEncryptedIndexNative(long nodePtr, String collectionName, String fieldName, long identityPtr);
     
     // Index Methods
-    private native DefraResult NewIndexNative(long nodePtr, String indexName, String fields, boolean isUnique, DefraCollectionOptions options, long identityPtr);
+    private native DefraResult NewIndexNative(long nodePtr, String indexName, String fields, boolean isUnique, String vectorJSON, DefraCollectionOptions options, long identityPtr);
     private native DefraResult ListIndexesNative(long nodePtr, DefraCollectionOptions options, long identityPtr);
     private native DefraResult DeleteIndexNative(long nodePtr, String indexName, DefraCollectionOptions options, long identityPtr);
     
@@ -341,7 +341,7 @@ public class DefraCollection {
      * @throws DefraException if DefraDB rejects the operation
      */
     public String newIndex(String indexName, String fields, boolean isUnique) throws DefraException {
-        DefraResult result = NewIndexNative(this.storePtr, indexName, fields, isUnique, collectionOptionsFromThis(), 0);
+        DefraResult result = NewIndexNative(this.storePtr, indexName, fields, isUnique, null, collectionOptionsFromThis(), 0);
         if (result.status != 0) {
             throw new DefraException(result.error);
         }
@@ -359,7 +359,7 @@ public class DefraCollection {
      * @throws DefraException if DefraDB rejects the operation
      */
     public String newIndex(String indexName, String fields, boolean isUnique, DefraIdentity identity) throws DefraException {
-        DefraResult result = NewIndexNative(this.storePtr, indexName, fields, isUnique, collectionOptionsFromThis(), identity.getPointer());
+        DefraResult result = NewIndexNative(this.storePtr, indexName, fields, isUnique, null, collectionOptionsFromThis(), identity.getPointer());
         if (result.status != 0) {
             throw new DefraException(result.error);
         }
