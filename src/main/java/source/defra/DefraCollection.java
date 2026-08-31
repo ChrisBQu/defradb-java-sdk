@@ -30,7 +30,7 @@ public class DefraCollection {
     private native DefraResult UpdateDocumentNative(long nodePtr, String docID, String filter, String updater, DefraCollectionOptions options, long identityPtr);
     
     // Encrypted Index Methods
-    private native DefraResult NewEncryptedIndexNative(long nodePtr, String collectionName, String fieldName, long identityPtr);
+    private native DefraResult NewEncryptedIndexNative(long nodePtr, String collectionName, String fieldName, String indexType, long identityPtr);
     private native DefraResult ListEncryptedIndexesNative(long nodePtr, String collectionName, long identityPtr);
     private native DefraResult DeleteEncryptedIndexNative(long nodePtr, String collectionName, String fieldName, long identityPtr);
     
@@ -242,7 +242,7 @@ public class DefraCollection {
      * @throws DefraException if DefraDB rejects the operation
      */
     public String newEncryptedIndex(String collectionName, String fieldName) throws DefraException {
-        DefraResult result = NewEncryptedIndexNative(this.storePtr, collectionName, fieldName, 0);
+        DefraResult result = NewEncryptedIndexNative(this.storePtr, collectionName, fieldName, null, 0);
         if (result.status != 0) {
             throw new DefraException(result.error);
         }
@@ -259,7 +259,7 @@ public class DefraCollection {
      * @throws DefraException if DefraDB rejects the operation
      */
     public String newEncryptedIndex(String collectionName, String fieldName, DefraIdentity identity) throws DefraException {
-        DefraResult result = NewEncryptedIndexNative(this.storePtr, collectionName, fieldName, identity.getPointer());
+        DefraResult result = NewEncryptedIndexNative(this.storePtr, collectionName, fieldName, null, identity.getPointer());
         if (result.status != 0) {
             throw new DefraException(result.error);
         }
