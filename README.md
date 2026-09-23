@@ -3,7 +3,7 @@
 [![Build and Test](https://github.com/sourcenetwork/defradb-java-sdk/actions/workflows/build.yml/badge.svg)](https://github.com/sourcenetwork/defradb-java-sdk/actions/workflows/build.yml)
 [![Discord](https://img.shields.io/discord/427944769851752448.svg?color=768AD4&label=discord)](https://source.network/discord)
 
-Embed [DefraDB](https://github.com/sourcenetwork/defradb) in Java applications on Linux and Android. The SDK exposes DefraDB's collections, documents, queries, transactions, identities, access control, peer-to-peer networking, and other node APIs through a Java interface backed by JNI.
+Embed [DefraDB](https://github.com/sourcenetwork/defradb) in Java applications on macOS, Linux, and Android. The SDK exposes DefraDB's collections, documents, queries, transactions, identities, access control, peer-to-peer networking, and other node APIs through a Java interface backed by JNI.
 
 Read the DefraDB documentation at [docs.source.network](https://docs.source.network/defradb).
 
@@ -13,7 +13,7 @@ Read the DefraDB documentation at [docs.source.network](https://docs.source.netw
 ## Contents
 
 - [Build](#build)
-- [Use on Linux](#use-on-linux)
+- [Use on macOS or Linux](#use-on-macos-or-linux)
 - [Use on Android](#use-on-android)
 - [Start a node](#start-a-node)
 - [Documentation](#documentation)
@@ -21,17 +21,17 @@ Read the DefraDB documentation at [docs.source.network](https://docs.source.netw
 
 ## Build
 
-The SDK currently builds from source together with a local checkout of DefraDB. Published Maven or Gradle packages are not yet available.
+The SDK targets the latest DefraDB default branch and builds from source together with a local checkout of it. Published Maven or Gradle packages are not yet available.
 
 ### Requirements
 
-- Linux
+- macOS or Linux
 - Git
-- JDK 11 or later for Linux builds
-- JDK 17 or later and the Android NDK for Android builds
+- A full JDK 11–20 for desktop builds, with `JAVA_HOME` set (JDK 17 recommended)
+- JDK 17 and the Android SDK/NDK for Android builds (on macOS, also GNU `sed` available as `sed` on `PATH`)
 - The toolchains required to build [DefraDB from source](https://github.com/sourcenetwork/defradb#build-requirements)
 
-Clone both repositories, then choose one or both targets:
+Clone both repositories, then build for the host or Android:
 
 ```shell
 git clone https://github.com/sourcenetwork/defradb.git
@@ -41,9 +41,14 @@ cd defradb-java-sdk
 # Linux
 ./build.sh --defra-dir ../defradb --linux
 
+# macOS
+./build.sh --defra-dir ../defradb --macos
+
 # Android; ANDROID_NDK must point to your installed NDK
 ANDROID_NDK=/path/to/android-ndk ./build.sh --defra-dir ../defradb --android
 ```
+
+Select a target explicitly: `--linux`, `--macos`, or `--android`. Desktop targets require a matching host OS. Android can be built from either host and combined with that host’s desktop flag. Gradle 8.3 requires a runtime JDK no newer than 20.
 
 Add `--cleanup` to remove copied headers and native libraries after packaging. Add `--silent` to build DefraDB with its `silent` build tag.
 
@@ -51,12 +56,12 @@ Build outputs:
 
 | Target | Artifact | Supported architecture |
 | --- | --- | --- |
-| Linux | `build/libs/defradb.jar` | Host architecture |
+| macOS / Linux | `build/libs/defradb.jar` | Host architecture |
 | Android | `build/outputs/aar/defradb-release.aar` | `arm64-v8a`, `x86_64` |
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for the manual build process, tests, and troubleshooting.
 
-## Use on Linux
+## Use on macOS or Linux
 
 Add the generated JAR to the compile-time and runtime classpaths:
 
@@ -65,7 +70,7 @@ javac -cp defradb.jar Example.java
 java -cp .:defradb.jar Example
 ```
 
-The JAR bundles its Java dependency and the Linux native libraries. It must be built for the same operating system and architecture on which it runs.
+The JAR bundles its Java dependency and the native libraries for the selected desktop platform. It must be built for the same operating system and architecture on which it runs.
 
 ## Use on Android
 

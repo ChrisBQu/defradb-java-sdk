@@ -7,9 +7,17 @@ on:
     branches: [main]
 
 jobs:
-  build-linux-and-test:
-    name: Build Linux Library and Test
-    runs-on: ubuntu-latest
+  build-desktop-and-test:
+    name: Build ${{ matrix.target }} Library and Test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux
+          - os: macos-latest
+            target: macos
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -34,8 +42,8 @@ jobs:
           chmod +x gradlew build.sh
           find /tmp/defradb -name "*.sh" -exec chmod +x {} +
 
-      - name: Build Linux library
-        run: ./build.sh --defra-dir /tmp/defradb --linux
+      - name: Build desktop library
+        run: ./build.sh --defra-dir /tmp/defradb --${{ matrix.target }}
 
       - name: Compile test
         run: |

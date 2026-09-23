@@ -1,11 +1,11 @@
 #!/bin/bash
 android_present=false
 linux_present=false
-ble_enabled=false
+macos_present=false
 cleanup=false
 defra_dir=""
 silent=false
-script_dir="$(pwd)"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -------------------------
 # ARG PARSING
@@ -20,6 +20,10 @@ while [[ $# -gt 0 ]]; do
             linux_present=true
             shift
             ;;
+        --macos)
+            macos_present=true
+            shift
+            ;;
         --cleanup)
             cleanup=true
             shift
@@ -29,12 +33,17 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --defra-dir)
-            if [ -z "$2" ]; then
+            if [[ $# -lt 2 || -z "$2" || "$2" = --* ]]; then
                 echo "Error: --defra-dir requires a path"
                 exit 1
             fi
             defra_dir="$2"
             shift 2
+            ;;
+        --help|-h)
+            echo "Usage: ./build.sh [ --android ] [ --linux ] [ --macos ] [ --cleanup ] [ --silent ] --defra-dir <path>"
+            echo "Select --linux, --macos, or --android. Android can be combined with the host desktop target."
+            exit 0
             ;;
         *)
             echo "Unknown argument: $1"
@@ -45,14 +54,32 @@ done
 
 if [ -z "$defra_dir" ]; then
     echo "Error: --defra-dir is required"
-    echo "Usage: ./build.sh [ --android ] [ --linux ] [ --cleanup ] [ --silent ] --defra-dir <path>"
+    echo "Usage: ./build.sh [ --android ] [ --linux ] [ --macos ] [ --cleanup ] [ --silent ] --defra-dir <path>"
     exit 1
 fi
 
 BUILD_TAGS_FLAG=""
 [ "$silent" = true ] && BUILD_TAGS_FLAG="BUILD_TAGS=silent"
 
-defra_dir_abs="$defra_dir"
+defra_dir_abs="$(cd "$defra_dir" && pwd)" || exit 1
+
+if [ "$linux_present" = true ] && [ "$(uname -s)" != Linux ]; then
+    echo "Error: --linux requires a Linux host"
+    exit 1
+fi
+if [ "$macos_present" = true ] && [ "$(uname -s)" != Darwin ]; then
+    echo "Error: --macos requires a macOS host"
+    exit 1
+fi
+
+if [ -z "${JAVA_HOME:-}" ] && [ "$(uname -s)" = Darwin ]; then
+    JAVA_HOME="$(/usr/libexec/java_home)" || exit 1
+    export JAVA_HOME
+fi
+if [ ! -f "${JAVA_HOME:-}/include/jni.h" ]; then
+    echo "Error: JAVA_HOME must point to a full JDK with include/jni.h"
+    exit 1
+fi
 
 mkdir -p "$script_dir/src/main/linuxLibs"
 mkdir -p "$script_dir/src/main/jniLibs/arm64-v8a"
@@ -95,14 +122,14 @@ if [ "$android_present" = true ]; then
     echo "Running C build for Android..."
     if [ -f "$script_dir/src/main/c/build.sh" ]; then
         chmod +x "$script_dir/src/main/c/build.sh"
-        (cd "$script_dir/src/main/c" && ./build.sh --android)
+        (cd "$script_dir/src/main/c" && ./build.sh --android) || exit 1
         echo "Android C build completed"
     else
         echo "Warning: src/main/c/build.sh not found"
     fi
 
     echo "Running Android Gradle build..."
-    "$script_dir/gradlew" -b "$script_dir/build-android.gradle" assembleRelease
+    "$script_dir/gradlew" -p "$script_dir" -b "$script_dir/build-android.gradle" assembleRelease
     if [ $? -eq 0 ]; then
         echo "Android Gradle build successful"
     else
@@ -138,18 +165,57 @@ if [ "$linux_present" = true ]; then
     echo "Running C build for Linux..."
     if [ -f "$script_dir/src/main/c/build.sh" ]; then
         chmod +x "$script_dir/src/main/c/build.sh"
-        (cd "$script_dir/src/main/c" && ./build.sh --linux)
+        (cd "$script_dir/src/main/c" && ./build.sh --linux) || exit 1
         echo "Linux C build completed"
     else
         echo "Warning: src/main/c/build.sh not found"
     fi
 
     echo "Running Linux Gradle build..."
-    "$script_dir/gradlew" -b "$script_dir/build-linux.gradle" build
+    "$script_dir/gradlew" -p "$script_dir" -b "$script_dir/build-linux.gradle" build
     if [ $? -eq 0 ]; then
         echo "Linux Gradle build successful"
     else
         echo "Linux Gradle build FAILED"
+        exit 1
+    fi
+fi
+
+# -------------------------
+# MACOS BUILD
+# -------------------------
+if [ "$macos_present" = true ]; then
+    echo "Running macOS build..."
+    (cd "$defra_dir_abs" && make build-c-shared-macos $BUILD_TAGS_FLAG)
+    if [ $? -ne 0 ]; then
+        echo "make build-c-shared-macos FAILED"
+        exit 1
+    fi
+
+    if [ -f "$defra_dir_abs/build/libdefradb.dylib" ]; then
+        echo "macOS build successful"
+        mkdir -p "$script_dir/src/main/macosLibs"
+        cp "$defra_dir_abs/build/libdefradb.dylib" "$script_dir/src/main/macosLibs/" || exit 1
+        echo "Copied macOS .dylib"
+    else
+        echo "macOS build FAILED"
+        exit 1
+    fi
+
+    cp "$defra_dir_abs/build/libdefradb.h" "$script_dir/src/main/c/" || exit 1
+    cp "$defra_dir_abs/build/defra_structs.h" "$script_dir/src/main/c/" || exit 1
+    echo "Copied macOS headers"
+
+    echo "Running C build for macOS..."
+    (cd "$script_dir/src/main/c" && bash build.sh --macos) || exit 1
+    echo "macOS C build completed"
+
+    echo "Running macOS Gradle build..."
+    "$script_dir/gradlew" -p "$script_dir" -b "$script_dir/build-macos.gradle" build
+    if [ $? -eq 0 ]; then
+        echo "macOS Gradle build successful"
+    else
+        echo "macOS Gradle build FAILED"
         exit 1
     fi
 fi
@@ -162,10 +228,12 @@ if [ "$cleanup" = true ]; then
     rm -f "$script_dir/src/main/c/libdefradb.h"
     rm -f "$script_dir/src/main/c/defra_structs.h"
     rm -f "$script_dir/src/main/linuxLibs/libdefradb.so"
-	rm -f "$script_dir/src/main/linuxLibs/libnativewrapper.so"
+    rm -f "$script_dir/src/main/linuxLibs/libnativewrapper.so"
     rm -f "$script_dir/src/main/jniLibs/arm64-v8a/libdefradb.so"
     rm -f "$script_dir/src/main/jniLibs/x86_64/libdefradb.so"
-	rm -f "$script_dir/src/main/jniLibs/arm64-v8a/libnativvewrapper.so"
+    rm -f "$script_dir/src/main/jniLibs/arm64-v8a/libnativewrapper.so"
     rm -f "$script_dir/src/main/jniLibs/x86_64/libnativewrapper.so"
+    rm -f "$script_dir/src/main/macosLibs/libdefradb.dylib"
+    rm -f "$script_dir/src/main/macosLibs/libnativewrapper.dylib"
     echo "Cleanup complete"
 fi

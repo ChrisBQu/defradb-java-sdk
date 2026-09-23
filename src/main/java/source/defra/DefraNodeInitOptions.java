@@ -76,16 +76,16 @@ public class DefraNodeInitOptions {
     public long httpWriteTimeoutMs;
     /** HTTP connection idle timeout in milliseconds. */
     public long httpIdleTimeoutMs;
-    /** Document ACP implementation, such as {@code local} or {@code source-hub}. */
+    /** Document ACP implementation, such as {@code local} or {@code remote}. */
     public String documentACPType;
     /** Filesystem path for the document ACP system. */
     public String documentACPPath;
-    /** SourceHub chain identifier used by document ACP. */
-    public String sourceHubChainID;
-    /** SourceHub gRPC address used by document ACP. */
-    public String sourceHubGRPCAddress;
-    /** SourceHub Comet RPC address used by document ACP. */
-    public String sourceHubCometRPCAddress;
+    /** Log identifier for remote document ACP. */
+    public String remoteDACLogID;
+    /** gRPC address for remote document ACP. */
+    public String remoteDACGRPCAddress;
+    /** Comet RPC address for remote document ACP. */
+    public String remoteDACCometRPCAddress;
     /** Filesystem path for the node ACP system. */
     public String nodeACPPath;
 
@@ -122,9 +122,9 @@ public class DefraNodeInitOptions {
         this.httpIdleTimeoutMs = 0;
         this.documentACPType = "";
         this.documentACPPath = "";
-        this.sourceHubChainID = "";
-        this.sourceHubGRPCAddress = "";
-        this.sourceHubCometRPCAddress = "";
+        this.remoteDACLogID = "";
+        this.remoteDACGRPCAddress = "";
+        this.remoteDACCometRPCAddress = "";
         this.nodeACPPath = "";
     }
     
