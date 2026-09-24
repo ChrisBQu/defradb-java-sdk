@@ -362,9 +362,9 @@ NodeInitOptions convertJavaNodeInitOptions(JNIEnv* env, jobject optionsObj, int*
     // Document ACP options
     opts.documentACPType = ctx_get_utf(&ctx, "documentACPType");
     opts.documentACPPath = ctx_get_utf(&ctx, "documentACPPath");
-    opts.sourceHubChainID = ctx_get_utf(&ctx, "sourceHubChainID");
-    opts.sourceHubGRPCAddress = ctx_get_utf(&ctx, "sourceHubGRPCAddress");
-    opts.sourceHubCometRPCAddress = ctx_get_utf(&ctx, "sourceHubCometRPCAddress");
+    opts.remoteDACLogID = ctx_get_utf(&ctx, "remoteDACLogID");
+    opts.remoteDACGRPCAddress = ctx_get_utf(&ctx, "remoteDACGRPCAddress");
+    opts.remoteDACCometRPCAddress = ctx_get_utf(&ctx, "remoteDACCometRPCAddress");
 
     // Node ACP options
     opts.nodeACPPath = ctx_get_utf(&ctx, "nodeACPPath");
@@ -457,9 +457,9 @@ void releaseJavaNodeInitOptions(JNIEnv* env, jobject optionsObj, NodeInitOptions
     free((void*)opts.tlsKeyPath);
     free((void*)opts.documentACPType);
     free((void*)opts.documentACPPath);
-    free((void*)opts.sourceHubChainID);
-    free((void*)opts.sourceHubGRPCAddress);
-    free((void*)opts.sourceHubCometRPCAddress);
+    free((void*)opts.remoteDACLogID);
+    free((void*)opts.remoteDACGRPCAddress);
+    free((void*)opts.remoteDACCometRPCAddress);
     free((void*)opts.nodeACPPath);
 
     jclass cls = (*env)->GetObjectClass(env, optionsObj);
@@ -930,6 +930,47 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_ListActionsNative(
     jlong identityPtr
 ) {
     Result res = ListActions((uintptr_t)nodePtr, (uintptr_t)identityPtr);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_BasicImportNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jstring filepathStr
+) {
+    const char* filepathC = jstring_to_utf8(env, filepathStr);
+    Result res = BasicImport((uintptr_t)nodePtr, (char*)filepathC);
+    free((void*)filepathC);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_BasicExportNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jstring filepathStr,
+    jstring collectionsStr,
+    jstring formatStr,
+    jboolean pretty
+) {
+    const char* filepathC = jstring_to_utf8(env, filepathStr);
+    const char* collectionsC = jstring_to_utf8(env, collectionsStr);
+    const char* formatC = jstring_to_utf8(env, formatStr);
+    int prettyC = (pretty == JNI_TRUE) ? 1 : 0;
+    Result res = BasicExport((uintptr_t)nodePtr, (char*)filepathC, (char*)collectionsC, (char*)formatC, prettyC);
+    free((void*)filepathC);
+    free((void*)collectionsC);
+    free((void*)formatC);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraNode_PrintDumpNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr
+) {
+    Result res = PrintDump((uintptr_t)nodePtr);
     return returnDefraResult(env, res);
 }
 
@@ -1913,6 +1954,47 @@ JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_ListLensesNative(
     jlong identityPtr
 ) {
     Result res = ListLenses((uintptr_t)nodePtr, (uintptr_t)identityPtr);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_BasicImportNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jstring filepathStr
+) {
+    const char* filepathC = jstring_to_utf8(env, filepathStr);
+    Result res = BasicImport((uintptr_t)nodePtr, (char*)filepathC);
+    free((void*)filepathC);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_BasicExportNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr,
+    jstring filepathStr,
+    jstring collectionsStr,
+    jstring formatStr,
+    jboolean pretty
+) {
+    const char* filepathC = jstring_to_utf8(env, filepathStr);
+    const char* collectionsC = jstring_to_utf8(env, collectionsStr);
+    const char* formatC = jstring_to_utf8(env, formatStr);
+    int prettyC = (pretty == JNI_TRUE) ? 1 : 0;
+    Result res = BasicExport((uintptr_t)nodePtr, (char*)filepathC, (char*)collectionsC, (char*)formatC, prettyC);
+    free((void*)filepathC);
+    free((void*)collectionsC);
+    free((void*)formatC);
+    return returnDefraResult(env, res);
+}
+
+JNIEXPORT jobject JNICALL Java_source_defra_DefraTransaction_PrintDumpNative(
+    JNIEnv* env,
+    jobject thiz,
+    jlong nodePtr
+) {
+    Result res = PrintDump((uintptr_t)nodePtr);
     return returnDefraResult(env, res);
 }
 
