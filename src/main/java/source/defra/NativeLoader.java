@@ -21,8 +21,8 @@ class NativeLoader {
             System.getProperty("java.vm.name", "").contains("Dalvik");
 
     // All native libraries that must be present in the temp dir.
-    // libdefradb.so is loaded automatically as a DT_NEEDED dependency of
-    // libnativewrapper.so via the $ORIGIN rpath embedded at build time,
+    // DefraDB is loaded as a dependency of nativewrapper via the embedded
+    // $ORIGIN (Linux) or @loader_path (macOS) runtime search path,
     // so it must be extracted before nativewrapper is loaded.
     private static final String[] ALL_LIBS = {"defradb", "nativewrapper"};
 
@@ -42,9 +42,9 @@ class NativeLoader {
         try {
             extractAll();
             // Only explicitly load nativewrapper — defradb is pulled in
-            // automatically via the $ORIGIN rpath in libnativewrapper.so.
+            // automatically via the platform runtime search path in nativewrapper.
             if (libName.equals("nativewrapper")) {
-                System.load(new File(tempDir, "libnativewrapper.so").getAbsolutePath());
+                System.load(new File(tempDir, System.mapLibraryName("nativewrapper")).getAbsolutePath());
             }
         } catch (IOException e) {
             throw new UnsatisfiedLinkError("Failed to extract native libraries: " + e.getMessage());
@@ -61,7 +61,7 @@ class NativeLoader {
     }
 
     private static void extractLib(String libName) throws IOException {
-        String fileName = "lib" + libName + ".so";
+        String fileName = System.mapLibraryName(libName);
         File outFile = new File(tempDir, fileName);
         try (InputStream in = NativeLoader.class.getResourceAsStream("/" + fileName);
              FileOutputStream out = new FileOutputStream(outFile)) {

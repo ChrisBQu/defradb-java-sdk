@@ -3,3 +3,6 @@ build/
 src/main/linuxLibs/
 src/main/jniLibs/
 src/main/c/*.h
+src/main/macosLibs/
+test-out/
+__pycache__/
