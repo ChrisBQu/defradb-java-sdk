@@ -17,7 +17,7 @@ JNI=../jniLibs
 
 if [ "$android_present" = true ]; then
     mkdir -p $JNI/arm64-v8a
-    $NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang \
+    $NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang \
         -fPIC \
         -I${JAVA_HOME}/include -I${JAVA_HOME}/include/linux \
         -L$JNI/arm64-v8a -ldefradb \
@@ -25,7 +25,7 @@ if [ "$android_present" = true ]; then
         nativewrapper.c
 
     mkdir -p $JNI/x86_64
-    $NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android21-clang \
+    $NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android24-clang \
         -fPIC \
         -I${JAVA_HOME}/include -I${JAVA_HOME}/include/linux \
         -L$JNI/x86_64 -ldefradb \
