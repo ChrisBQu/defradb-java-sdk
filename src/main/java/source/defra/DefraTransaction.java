@@ -72,7 +72,14 @@ public class DefraTransaction {
     private native DefraResult SetLensNative(long txnPtr, long identityPtr, String src, String dst, String cfg);
     private native DefraResult AddLensNative(long txnPtr, long identityPtr, String cfg);
     private native DefraResult ListLensesNative(long txnPtr, long identityPtr);
-    
+
+    // Backup Methods
+    private native DefraResult BasicImportNative(long txnPtr, String filepath);
+    private native DefraResult BasicExportNative(long txnPtr, String filepath, String collections, String format, boolean pretty);
+
+    // Debug Methods
+    private native DefraResult PrintDumpNative(long txnPtr);
+
     // P2P Methods
     private native DefraResult GetP2PInfoNative(long txnPtr, long identityPtr);
     private native DefraResult ListP2PActivePeersNative(long txnPtr, long identityPtr);
@@ -1105,6 +1112,61 @@ public class DefraTransaction {
             throw new DefraException(result.error);
         }
         return result.value;
+    }
+
+    // Backup Methods
+    /**
+     * Imports a JSON dataset from a file within this transaction.
+     *
+     * @param filepath path to the file to import, which must be accessible to the node
+     * @throws DefraException if DefraDB rejects the operation
+     */
+    public void basicImport(String filepath) throws DefraException {
+        DefraResult result = BasicImportNative(this.txnPtr, filepath);
+        if (result.status != 0) {
+            throw new DefraException(result.error);
+        }
+    }
+
+    /**
+     * Exports all collections to a file in JSON format within this transaction.
+     *
+     * @param filepath path to the file to export to
+     * @throws DefraException if DefraDB rejects the operation
+     */
+    public void basicExport(String filepath) throws DefraException {
+        basicExport(filepath, new String[0], "", false);
+    }
+
+    /**
+     * Exports the current data, or a subset of it, to a file within this transaction.
+     *
+     * @param filepath path to the file to export to
+     * @param collections names of the collections to export; all collections are exported if empty
+     * @param format export format, or an empty string for the default (JSON)
+     * @param pretty whether to pretty-print the output
+     * @throws DefraException if DefraDB rejects the operation
+     */
+    public void basicExport(String filepath, String[] collections, String format, boolean pretty) throws DefraException {
+        DefraResult result = BasicExportNative(this.txnPtr, filepath, String.join(",", collections), format, pretty);
+        if (result.status != 0) {
+            throw new DefraException(result.error);
+        }
+    }
+
+    // Debug Methods
+    /**
+     * Logs the entire contents of the store as seen by this transaction.
+     *
+     * <p>It is likely unwise to call this on a large database.</p>
+     *
+     * @throws DefraException if DefraDB rejects the operation
+     */
+    public void printDump() throws DefraException {
+        DefraResult result = PrintDumpNative(this.txnPtr);
+        if (result.status != 0) {
+            throw new DefraException(result.error);
+        }
     }
 
     // P2P Methods
