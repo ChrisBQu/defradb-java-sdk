@@ -1,0 +1,39 @@
+plugins {
+    id 'java-library'
+}
+
+archivesBaseName = 'defradb'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java']
+            exclude '**/DefraBLE.java'
+        }
+        resources {
+            srcDirs = ['src/main/macosLibs']
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.json:json:20240303'
+}
+
+tasks.withType(Javadoc).configureEach {
+    options.addBooleanOption('Werror', true)
+}
+
+jar {
+    from configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
