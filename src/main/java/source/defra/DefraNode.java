@@ -79,7 +79,14 @@ public class DefraNode {
 
     // Action Methods
     private native DefraResult ListActionsNative(long nodePtr, long identityPtr);
-    
+
+    // Backup Methods
+    private native DefraResult BasicImportNative(long nodePtr, String filepath);
+    private native DefraResult BasicExportNative(long nodePtr, String filepath, String collections, String format, boolean pretty);
+
+    // Debug Methods
+    private native DefraResult PrintDumpNative(long nodePtr);
+
     // Lens Methods
     private native DefraResult SetLensNative(long nodePtr, long identityPtr, String src, String dst, String cfg);
     private native DefraResult AddLensNative(long nodePtr, long identityPtr, String cfg);
@@ -1219,6 +1226,61 @@ public class DefraNode {
             throw new DefraException(result.error);
         }
         return result.value;
+    }
+
+    // Backup Methods
+    /**
+     * Imports a JSON dataset from a file.
+     *
+     * @param filepath path to the file to import, which must be accessible to the node
+     * @throws DefraException if DefraDB rejects the operation
+     */
+    public void basicImport(String filepath) throws DefraException {
+        DefraResult result = BasicImportNative(this.nodePtr, filepath);
+        if (result.status != 0) {
+            throw new DefraException(result.error);
+        }
+    }
+
+    /**
+     * Exports all collections to a file in JSON format.
+     *
+     * @param filepath path to the file to export to
+     * @throws DefraException if DefraDB rejects the operation
+     */
+    public void basicExport(String filepath) throws DefraException {
+        basicExport(filepath, new String[0], "", false);
+    }
+
+    /**
+     * Exports the current data, or a subset of it, to a file.
+     *
+     * @param filepath path to the file to export to
+     * @param collections names of the collections to export; all collections are exported if empty
+     * @param format export format, or an empty string for the default (JSON)
+     * @param pretty whether to pretty-print the output
+     * @throws DefraException if DefraDB rejects the operation
+     */
+    public void basicExport(String filepath, String[] collections, String format, boolean pretty) throws DefraException {
+        DefraResult result = BasicExportNative(this.nodePtr, filepath, String.join(",", collections), format, pretty);
+        if (result.status != 0) {
+            throw new DefraException(result.error);
+        }
+    }
+
+    // Debug Methods
+    /**
+     * Logs the entire contents of the node's store.
+     *
+     * <p>It is likely unwise to call this on a large database.</p>
+     *
+     * @throws DefraException if DefraDB rejects the operation
+     */
+    public void printDump() throws DefraException {
+        DefraResult result = PrintDumpNative(this.nodePtr);
+        if (result.status != 0) {
+            throw new DefraException(result.error);
+        }
     }
 
     // Lens Methods

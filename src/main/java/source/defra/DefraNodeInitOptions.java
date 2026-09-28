@@ -76,15 +76,15 @@ public class DefraNodeInitOptions {
     public long httpWriteTimeoutMs;
     /** HTTP connection idle timeout in milliseconds. */
     public long httpIdleTimeoutMs;
-    /** Document ACP implementation, such as {@code local} or {@code remote}. */
+    /** Document ACP implementation: {@code none}, {@code local}, or {@code remote}. */
     public String documentACPType;
     /** Filesystem path for the document ACP system. */
     public String documentACPPath;
-    /** Log identifier for remote document ACP. */
+    /** Log identifier used by remote document ACP. */
     public String remoteDACLogID;
-    /** gRPC address for remote document ACP. */
+    /** gRPC address used by remote document ACP. */
     public String remoteDACGRPCAddress;
-    /** Comet RPC address for remote document ACP. */
+    /** Comet RPC address used by remote document ACP. */
     public String remoteDACCometRPCAddress;
     /** Filesystem path for the node ACP system. */
     public String nodeACPPath;
