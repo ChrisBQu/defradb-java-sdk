@@ -77,6 +77,9 @@ public class DefraNode {
     private native DefraResult GetNodeIdentityNative(long nodePtr);
     private native void FreeIdentityNative(long identityPtr);
 
+    // Node Methods
+    private native DefraResult GetNodeOptionsNative(long nodePtr);
+
     // Action Methods
     private native DefraResult ListActionsNative(long nodePtr, long identityPtr);
 
@@ -1144,6 +1147,20 @@ public class DefraNode {
      */
     public String getNodeIdentity() throws DefraException {
         DefraResult result = GetNodeIdentityNative(this.nodePtr);
+        if (result.status != 0) {
+            throw new DefraException(result.error);
+        }
+        return result.value;
+    }
+
+    /**
+     * Returns the node's configuration options as JSON, with sensitive values redacted.
+     *
+     * @return the node options as JSON
+     * @throws DefraException if DefraDB rejects the operation
+     */
+    public String getNodeOptions() throws DefraException {
+        DefraResult result = GetNodeOptionsNative(this.nodePtr);
         if (result.status != 0) {
             throw new DefraException(result.error);
         }

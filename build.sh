@@ -86,6 +86,15 @@ mkdir -p "$script_dir/src/main/jniLibs/arm64-v8a"
 mkdir -p "$script_dir/src/main/jniLibs/x86_64"
 mkdir -p "$script_dir/src/main/c"
 
+# nativewrapper.c is maintained in the DefraDB repo (it's also used to build DefraDB's Java test client), so the
+# copy compiled here is always pulled from there rather than kept in this repo.
+if [ ! -f "$defra_dir_abs/cbindings/nativewrapper.c" ]; then
+    echo "Error: $defra_dir_abs/cbindings/nativewrapper.c not found"
+    exit 1
+fi
+cp "$defra_dir_abs/cbindings/nativewrapper.c" "$script_dir/src/main/c/" || exit 1
+echo "Copied nativewrapper.c"
+
 # -------------------------
 # ANDROID BUILD
 # -------------------------
@@ -227,6 +236,7 @@ if [ "$cleanup" = true ]; then
     echo "Cleaning up build artifacts..."
     rm -f "$script_dir/src/main/c/libdefradb.h"
     rm -f "$script_dir/src/main/c/defra_structs.h"
+    rm -f "$script_dir/src/main/c/nativewrapper.c"
     rm -f "$script_dir/src/main/linuxLibs/libdefradb.so"
     rm -f "$script_dir/src/main/linuxLibs/libnativewrapper.so"
     rm -f "$script_dir/src/main/jniLibs/arm64-v8a/libdefradb.so"
